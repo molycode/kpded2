@@ -28,8 +28,6 @@ cvar_t	*sv_max_download_size;
 char	svConnectStuffString[1100];
 char	svBeginStuffString[1100];
 
-int		stringCmdCount;
-
 #if KINGPIN
 // MH: download caching/compression stuff
 
@@ -335,36 +333,49 @@ static void SV_AddConfigstrings (void)
 	if (sv_client->protocol == PROTOCOL_ORIGINAL)
 #endif
 	{
+#if KINGPIN
+		int nextdl = 0;
+#endif
 #if !defined(NO_ZLIB) && !KINGPIN
 plainStrings:
 #endif
 		while (start < MAX_CONFIGSTRINGS)
 		{
-#if KINGPIN
 			int cs = start;
+#if KINGPIN
 			// MH: send downloadables in place of images
 			if (cs >= CS_IMAGES && cs < CS_IMAGES + MAX_IMAGES)
-				cs += MAX_CONFIGSTRINGS - CS_IMAGES;
-			if (sv.configstrings[cs][0])
-#else
-			if (sv.configstrings[start][0])
-#endif
 			{
-#if KINGPIN
-				len = (int)strlen(sv.configstrings[cs]);
-#else
-				len = (int)strlen(sv.configstrings[start]);
+recheckdl:
+				cs = MAX_CONFIGSTRINGS + nextdl;
+				nextdl++;
+				if (nextdl > MAX_IMAGES || !sv.configstrings[cs][0])
+				{
+					start = CS_IMAGES + MAX_IMAGES;
+					continue;
+				}
+				// latest patch will request CS_SOUND files itself so don't send those again
+				if (sv_client->patched >= 9 && !strncmp(sv.configstrings[cs], "sound/", 6))
+				{
+					int i;
+					for (i = 1; i < MAX_SOUNDS; i++)
+					{
+						if (!sv.configstrings[CS_SOUNDS + i][0])
+							break;
+						if (!strcmp(sv.configstrings[CS_SOUNDS + i], sv.configstrings[cs] + 6))
+							goto recheckdl;
+					}
+				}
+			}
 #endif
-
+			if (sv.configstrings[cs][0])
+			{
+				len = (int)strlen(sv.configstrings[cs]);
 				len = len > MAX_QPATH ? MAX_QPATH : len;
 
 				MSG_BeginWriting (svc_configstring);
 				MSG_WriteShort (start);
-#if KINGPIN
 				MSG_Write (sv.configstrings[cs], len);
-#else
-				MSG_Write (sv.configstrings[start], len);
-#endif
 				MSG_Write ("\0", 1);
 				// MH: count full message length
 				wrote += MSG_GetLength();
@@ -1130,9 +1141,9 @@ void SV_ClientBegin (client_t *cl)
 	else if (cl->download)
 	{
 		//r1: they're still downloading? shouldn't be...
-		Com_Printf ("WARNING: Begin from %s[%s] while still downloading. Client dropped.\n", LOG_SERVER|LOG_WARNING, cl->name, NET_AdrToString (&cl->netchan.remote_address));
-		SV_DropClient (cl, false);
-		return;
+		// MH: don't kick because the client may just have a file writing issue affecting downloads
+		Com_Printf ("WARNING: Begin from %s[%s] while still downloading.\n", LOG_SERVER|LOG_WARNING, cl->name, NET_AdrToString (&cl->netchan.remote_address));
+		SV_CloseDownload(cl);
 	}
 
 	if (cl->spawncount != svs.spawncount )
@@ -1176,9 +1187,9 @@ void SV_ClientBegin (client_t *cl)
 	// MH: send image configstrings now (downloadables were sent in their place earlier)
 	{
 		int i;
-		for (i=1; i<MAX_IMAGES; i++)
+		for (i=0; i<MAX_IMAGES; i++)
 		{
-			if (sv.configstrings[CS_IMAGES + i][0])
+			if (sv.configstrings[CS_IMAGES + i][0] || (!i && sv.dlconfigstrings[i][0]))
 			{
 				MSG_BeginWriting (svc_configstring);
 				MSG_WriteShort (CS_IMAGES + i);
@@ -1283,7 +1294,7 @@ static void SV_Begin_f (void)
 
 #if KINGPIN
 	// MH: load downloaded PAK file(s)
-	if (sv_client->downloadpak)
+	if (sv_client->downloadpak && !sv_client->download)
 	{
 		ClientLoadNewPAK();
 		return;
@@ -1989,7 +2000,7 @@ static void SV_BeginDownload_f(void)
 
 #if KINGPIN
 	// MH: if just downloaded a PAK file then tell client to load it
-	if (!ispak && sv_client->downloadpak)
+	if (!ispak && sv_client->downloadpak && !sv_client->download)
 	{
 		ClientLoadNewPAK();
 		return;
@@ -2038,7 +2049,7 @@ invalid:
 	if (sv_client->downloadsize == -1)
 	{
 		Com_Printf ("Couldn't download %s to %s\n", LOG_SERVER|LOG_DOWNLOAD|LOG_NOTICE, name, sv_client->name);
-
+fail:
 #if KINGPIN
 		MSG_BeginWriting (svc_pushdownload);
 #else
@@ -2147,7 +2158,11 @@ invalid:
 	//download should be ok by here
 	{ // MH: streaming the file from disk/cache instead of preloading it all to memory
 		qboolean closeHandle;
-		FS_FOpenFile (name, &sv_client->download, HANDLE_DUPE, &closeHandle);
+		if (FS_FOpenFile(name, &sv_client->download, HANDLE_DUPE, &closeHandle) == -1)
+		{
+			Com_Printf("Couldn't open %s\n", LOG_SERVER | LOG_DOWNLOAD | LOG_NOTICE, name);
+			goto fail;
+		}
 		sv_client->downloadstart = ftell(sv_client->download);
 		if (offset)
 			fseek(sv_client->download, sv_client->downloadstart + offset, SEEK_SET);
@@ -2349,12 +2364,10 @@ static void SV_ClientServerinfo_f (void)
 {
 	const char	*strafejump_msg;
 	const char	*optimize_msg;
-	const char	*packetents_msg;
 	int			maxLen;
 
 	strafejump_msg = sv_strafejump_hack->intvalue == 2 ? "Forced" : sv_strafejump_hack->intvalue ? "Enabled (requires protocol 35 client)" : "Disabled";
 	optimize_msg = sv_optimize_deltas->intvalue == 2 ? "Forced" : sv_optimize_deltas->intvalue ? "Enabled" : "Disabled";
-	packetents_msg = sv_packetentities_hack->intvalue == 2 ? "Enabled (with protocol 35 zlib support)" : sv_packetentities_hack->intvalue ? "Enabled (without protocol 35 zlib support)" : "Disabled";
 
 	maxLen = Cvar_IntValue ("net_maxmsglen");
 	if (maxLen == 0)
@@ -2368,15 +2381,13 @@ static void SV_ClientServerinfo_f (void)
 		"Your protocol  : %d\n"
 		"Your max packet: %d (server max allowed: %d)\n"
 		"Strafejump hack: %s\n"
-		"Optimize deltas: %s\n"
-		"Packetents hack: %s\n",
+		"Optimize deltas: %s\n",
 		sv_fps->intvalue, 1000 / sv_fps->intvalue,
 		sv_client->settings[CLSET_FPS], 1000 / sv_client->settings[CLSET_FPS],
 		sv_client->protocol,
 		sv_client->netchan.message.buffsize, maxLen,
 		strafejump_msg,
-		optimize_msg,
-		packetents_msg);
+		optimize_msg);
 }
 #endif
 
@@ -2535,7 +2546,6 @@ static void SV_CvarResult_f (void)
 			MSG_WriteString (va ("set cl_maxfps %d\n", (int)(sv_minpps->value * 1.1)));
 			SV_AddMessage (sv_client, true);
 		}
-		stringCmdCount--;
 		return;
 	}
 #if KINGPIN
@@ -2551,7 +2561,6 @@ static void SV_CvarResult_f (void)
 		cl_parental_lock = atoi(Cmd_Argv(p));
 		cl_parental_override = atoi(Cmd_Argv(p+1));
 		sv_client->nocurse = nocurse | (cl_parental_lock && !cl_parental_override);
-		stringCmdCount--;
 		return;
 	}
 	// MH: get cl_maxfps and gl_swapinterval values and adjust for download speed limit
@@ -2593,7 +2602,6 @@ static void SV_CvarResult_f (void)
 				SV_AddMessage (sv_client, true);
 			}
 		}
-		stringCmdCount--;
 		return;
 	}
 	// MH: reset cl_maxfps and gl_swapinterval if needed
@@ -2609,13 +2617,9 @@ static void SV_CvarResult_f (void)
 				MSG_WriteString (va("set cl_maxfps %d\nset kpded2_fps \"\"\n", cl_maxfps));
 			SV_AddMessage (sv_client, true);
 		}
-		stringCmdCount--;
 		return;
 	}
 #endif
-
-	//cvar responses don't count as malicious
-	stringCmdCount--;
 
 	match = VarBanMatch (&cvarbans, Cmd_Argv(1), result);
 
@@ -2720,7 +2724,6 @@ static void SV_Lag_f (void)
 	client_t	*cl;
 	const char	*substring;
 	int			avg_ping, min_ping, max_ping, count, j;
-	float		ccq;
 	int			cdelay, cdelaytime, sdelay, sdelay2, sdelaytime;
 
 	if (Cmd_Argc() == 1)
@@ -2822,12 +2825,6 @@ static void SV_Lag_f (void)
 		}
 	}
 
-#if KINGPIN
-	ccq = 100 - cl->quality;
-#else
-	ccq = (50.0f * (2.0f - (cl->commandMsecOverflowCount > 2 ? 2 : cl->commandMsecOverflowCount)));
-#endif
-
 	SV_ClientPrintf(sv_client, PRINT_HIGH,
 		"Recent lag stats for %s:\n"
 		"Ping (min/avg/max)    : %d / %d / %d ms\n"
@@ -2836,7 +2833,7 @@ static void SV_Lag_f (void)
 		"Client to Server loss : %.2f%%\n",
 		cl->name,
 		min_ping, avg_ping, max_ping,
-		ccq,
+		100 - cl->quality, // MH:
 		((float)cl->netchan.out_dropped / (float)cl->netchan.out_total) * 100,
 		((float)cl->netchan.in_dropped / (float)cl->netchan.in_total) * 100);
 	// MH: include client and server delay info
@@ -3516,6 +3513,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 	usercmd_t	oldest, oldcmd, newcmd;
 	int			net_drop;
 	int			userinfoCount;
+	int			stringCmdCount;
 	qboolean	move_issued, interpolating;
 	int			lastframe;
 #if !KINGPIN
@@ -3673,7 +3671,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 			}*/
 #endif
 
-#if KINGPIN
 			// MH: measure the connection's latency consistency (client->server)
 			if (cl->quality_last && cl->netchan.dropped < 3 && newcmd.msec < 200)
 			{
@@ -3690,7 +3687,9 @@ void SV_ExecuteClientMessage (client_t *cl)
 						d -= oldest.msec;
 					}
 				}
+#if KINGPIN
 				cl->currentping += d;
+#endif
 				if (d > 1)
 					cl->quality_acc += d;
 				else
@@ -3720,7 +3719,6 @@ void SV_ExecuteClientMessage (client_t *cl)
 			}
 skipquality:
 			cl->quality_last = curtime;
-#endif
 
 			// MH: latency checking moved from before to after checks above
 			if (lastframe != cl->lastframe)
@@ -3819,8 +3817,8 @@ skipquality:
 					if (net_drop > 2 && cl->initialRealTime)
 					{
 						int msec = (net_drop - 2) * (cl->lastcmd.msec + oldest.msec) / 2;
-						if (msec > curtime - cl->initialRealTime - cl->totalMsecUsed - newcmd.msec - oldcmd.msec - oldest.msec)
-							msec = curtime - cl->initialRealTime - cl->totalMsecUsed - newcmd.msec - oldcmd.msec - oldest.msec;
+						if (msec > (int)(curtime - cl->initialRealTime - cl->totalMsecUsed - newcmd.msec - oldcmd.msec - oldest.msec))
+							msec = (int)(curtime - cl->initialRealTime - cl->totalMsecUsed - newcmd.msec - oldcmd.msec - oldest.msec);
 						while (msec > 0)
 						{
 							cl->lastcmd.msec = (msec < 100 ? msec : 100);
@@ -3888,7 +3886,8 @@ skipquality:
 #endif
 
 			// malicious users may try using too many string commands
-			if (++stringCmdCount < MAX_STRINGCMDS)
+			// MH: don't count any cvar checks towards limit
+			if (s[0] == '\177' || ++stringCmdCount < MAX_STRINGCMDS)
 				SV_ExecuteUserCommand (s);
 
 #if !KINGPIN

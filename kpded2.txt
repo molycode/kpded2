@@ -1,10 +1,10 @@
 Kingpin is based on Quake2, and like Quake2, it has several bugs and security
 issues. Quake2 has since been made open source, and enhanced Quake2 servers
 have appeared. R1Q2 is one of the main ones, and kpded2 is a version of it that
-has been modified to run Kingpin instead of Quake2. kpded2 is fully compatible
-with the original Kingpin server, so it can simply be dropped in place of the
-kingpin/kpded executable without any config changes, although you will probably
-want to edit your config to take advantage of new features.
+has been modified to run Kingpin. kpded2 is fully compatible with the original
+Kingpin server, so it can simply be dropped in place of the kingpin/kpded
+executable without any config changes, although you will probably want to edit
+your config to take advantage of new features.
 
 As well as fixing bugs and security holes, kpded2 adds a bunch of other
 improvements, including the following:
@@ -19,6 +19,8 @@ improvements, including the following:
 * Packet loss measurement and duplicate packet sending to reduce it.
 
 * Message buffering to prevent overflows.
+
+* Anti-wallhack processing.
 
 * Player country lookups using MaxMind GeoIP2 database.
 
@@ -81,7 +83,7 @@ As well as the standard Kingpin config options, the following new options can
 be used:
 
 allow_download_paks
-  Allow downloading of PAK files in the game directory (not main). Default 1.
+  Allow downloading of PAK files. Default 1.
 
 allow_download_pics
   Allow downloading of files in the pics directory. Default 1.
@@ -112,6 +114,9 @@ fs_cache
     1: Cache path and size of files inside PAK files
     2: Cache non-existent files
     4: Cache path and size of normal files
+
+hostname
+  Server name. A game start time (see setstarttime) can be appended with '@'.
 
 logfile
   This option works the same as standard but can also be set to 4 for appended
@@ -236,7 +241,7 @@ sv_download_precache
 sv_enforcetime_kick
   Kick clients that exceed this many seconds of time offset. Default 0.
     0: Disabled
-    1+: Enabled (increase value to reduce false positives)
+    1+: Enabled (increase value to reduce false positives from lag)
 
 sv_enhanced_setplayer
   Allow use of partial names in the kick, dumpuser, etc commands. Default 0.
@@ -636,6 +641,10 @@ localtime
 
 minimize
   Minimize the console window. Windows only.
+
+moveall
+  Move all connected clients to another server.
+    Syntax : moveall <address:port>
 
 net_restart
   Restart the network (recreate sockets and reset stats).

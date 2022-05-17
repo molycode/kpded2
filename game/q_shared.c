@@ -104,8 +104,7 @@ void _Q_assert (char *expression, char *function, uint32 line)
 void AngleVectors (vec3_t angles, vec3_t /*@out@*//*@null@*/ forward, vec3_t /*@out@*//*@null@*/right, vec3_t /*@out@*//*@null@*/up)
 {
 	float		angle;
-	static float		sr, sp, sy, cr, cp, cy;
-	// static to help MS compiler fp bugs
+	float		sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * M_PI2_DIV_360;
 	sy = (float)sin(angle);

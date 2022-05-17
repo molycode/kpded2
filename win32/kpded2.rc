@@ -54,7 +54,11 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+#ifdef KINGPIN
 IDI_ICON2               ICON                    "kp.ico"
+#else
+IDI_ICON2               ICON                    "q2.ico"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -91,8 +95,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,1,0,0
- PRODUCTVERSION 2,1,0,0
+ FILEVERSION 2,2,0,0
+ PRODUCTVERSION 2,2,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -107,8 +111,12 @@ BEGIN
     BEGIN
         BLOCK "040004b0"
         BEGIN
+#ifdef KINGPIN
             VALUE "FileDescription", "kpded2 - Enhanced Kingpin Server"
-            VALUE "FileVersion", "2.1"
+#else
+            VALUE "FileDescription", "R1Q2/kpded2 - Enhanced Quake II Server"
+#endif
+            VALUE "FileVersion", "2.2"
         END
     END
     BLOCK "VarFileInfo"

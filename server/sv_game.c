@@ -646,7 +646,7 @@ fixed:
 		{
 			if (!track && atoi(sv.configstrings[CS_CDTRACK]) == 0)
 			{
-				Com_Printf ("WARNING: Ignoring CS_CDTRACK to allow for extended map name length\n", LOG_SERVER|LOG_WARNING);
+//				Com_Printf ("WARNING: Ignoring CS_CDTRACK to allow for extended map name length\n", LOG_SERVER|LOG_WARNING); // MH: unimportant
 				// MH: just return here, surely?
 				return;
 /*				index = -1;

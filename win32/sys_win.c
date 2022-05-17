@@ -1889,7 +1889,7 @@ BOOL IsOpenGLValid (VOID)
 	return FALSE;
 }
 
-#if !KINGPIN
+#if 0
 DWORD R1Q2ExceptionHandler (DWORD exceptionCode, LPEXCEPTION_POINTERS exceptionInfo)
 {
 	FILE	*fhReport;

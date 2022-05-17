@@ -199,6 +199,12 @@ static void DownloadIndex(const char *name)
 	strcpy(lwrname, name);
 	Q_strlwr(lwrname);
 
+	if (strstr(lwrname, ".."))
+	{
+		Com_Printf("WARNING: '%s' will not be downloadable.\n", LOG_SERVER | LOG_WARNING, lwrname);
+		return;
+	}
+
 	ext = strrchr(lwrname, '.');
 	if (ext && (!strcmp(ext+1, "dll") || !strcmp(ext+1, "exe")))
 	{
@@ -320,18 +326,38 @@ int	EXPORT SV_SkinIndex(int modelindex, const char *name)
 	char lwrname[MAX_QPATH];
 	int i, len, len2;
 
-	len = strlen(name);
-	if ((uint32)modelindex > MAX_MODELS || len >= sizeof(lwrname))
+	if ((uint32)modelindex >= MAX_MODELS)
 		return 0;
+
+	len = strlen(name);
+	if (len != 3)
+	{
+		if (sv_gamedebug->intvalue)
+		{
+			Com_Printf("GAME WARNING: skinindex: Abnormal skin length (%d) for model %s\n", LOG_WARNING | LOG_GAMEDEBUG | LOG_SERVER, len, sv.configstrings[CS_MODELS + modelindex]);
+			if (sv_gamedebug->intvalue >= 3)
+				Sys_DebugBreak();
+		}
+		if (len >= sizeof(lwrname))
+			return 0;
+	}
 	strcpy(lwrname, name);
 	Q_strlwr(lwrname);
 
 	len2 = strlen(sv.configstrings[CS_MODELSKINS + modelindex]);
-	for (i=0; i<len2; i++)
+	for (i = 0; i < len2; i += len)
 		if (!strncmp(sv.configstrings[CS_MODELSKINS + modelindex] + i, lwrname, len))
 			return i;
 
-	strcpy(sv.configstrings[CS_MODELSKINS + modelindex] + i, lwrname);
+	if (len2 + len >= MAX_QPATH)
+	{
+		Com_Printf("GAME ERROR: skinindex: Too many skins for model %s\n", LOG_ERROR | LOG_GAMEDEBUG | LOG_SERVER, sv.configstrings[CS_MODELS + modelindex]);
+		if (sv_gamedebug->intvalue >= 2)
+			Sys_DebugBreak();
+		return 0;
+	}
+
+	strcpy(sv.configstrings[CS_MODELSKINS + modelindex] + len2, lwrname);
 
 	if (sv.state != ss_loading)
 	{
@@ -439,7 +465,10 @@ static void SV_SpawnServer (const char *server, const char *spawnpoint, server_s
 		if (sv_recycle->intvalue != 2)
 			Cvar_ForceSet ("sv_recycle", "0");
 	}
+	else
 #endif
+	// MH: apply latched cvars with NORELOAD set
+	Cvar_GetLatchedVars();
 
 	Cvar_ForceSet ("$mapname", server);
 
@@ -542,10 +571,8 @@ static void SV_SpawnServer (const char *server, const char *spawnpoint, server_s
 		// MH: don't count acks during reconnect
 		svs.clients[i].netchan.countacks = false;
 
-#if KINGPIN
 		// MH: reset connection quality measurement state
 		svs.clients[i].quality_acc = svs.clients[i].quality_last = 0;
-#endif
 	}
 
 	sv.time = 1000;
@@ -658,18 +685,26 @@ static void SV_SpawnServer (const char *server, const char *spawnpoint, server_s
 
 #if KINGPIN
 		// MH: make a custom sky downloadable
-		if (sv.configstrings[CS_SKY][0] && sv.configstrings[CS_SKY][0]!='.')
+		if (sv.configstrings[CS_SKY][0])
 		{
-			// standard skies that the player should already have
-			static const char *ignore[] = { "cp", "hl", "pv", "rc", "sr", "st", "ty", NULL };
-			for (i=0; ignore[i]; i++)
-				if (!Q_stricmp(sv.configstrings[CS_SKY], ignore[i])) goto skipsky;
-			for (i=0; i<6; i++)
+			qboolean dodgy = !strncmp(sv.configstrings[CS_SKY], "../", 3); // for "../textures/" paths
+			if (!dodgy)
 			{
-				static const char *env_suf[6] = { "rt", "bk", "lf", "ft", "up", "dn" };
+				// standard skies that the player should already have
+				static const char *ignore[] = { "cp", "hl", "pv", "rc", "sr", "st", "ty", NULL };
+				for (i = 0; ignore[i]; i++)
+					if (!Q_stricmp(sv.configstrings[CS_SKY], ignore[i])) goto skipsky;
+			}
+			for (i = 0; i < 7; i++)
+			{
+				static const char *env_suf[7] = { "rt", "bk", "lf", "ft", "up", "dn", "winrefl" };
 				char buf[MAX_QPATH];
-				Com_sprintf(buf, sizeof(buf), "env/%s%s.tga", sv.configstrings[CS_SKY], env_suf[i]);
-				DownloadIndex(buf);
+				if (dodgy)
+					Com_sprintf(buf, sizeof(buf), "%s%s.tga", sv.configstrings[CS_SKY] + 3, env_suf[i]);
+				else
+					Com_sprintf(buf, sizeof(buf), "env/%s%s.tga", sv.configstrings[CS_SKY], env_suf[i]);
+				if (i < 6 || FS_LoadFile(buf, NULL) > 0)
+					DownloadIndex(buf);
 			}
 		}
 skipsky:

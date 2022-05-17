@@ -1098,6 +1098,10 @@ static void PM_CheckSpecialMovement (void)
 	vec3_t	flatforward;
 	trace_t	trace;
 
+	// MH: don't do ladders or waterjumps if dead
+	if (pm->s.pm_type >= PM_DEAD)
+		return;
+
 	if (pm->s.pm_time)
 		return;
 

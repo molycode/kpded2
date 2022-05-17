@@ -31,7 +31,7 @@ int			server_port;
 //netadr_t	net_local_adr;
 
 #if KINGPIN
-static int			ip_sockets[3] = {0}; // MH: extra socket for Gamespy status requests
+static int			ip_sockets[3]; // MH: extra socket for Gamespy status requests
 #else
 static int			ip_sockets[2];
 #endif

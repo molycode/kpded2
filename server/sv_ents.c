@@ -108,15 +108,12 @@ void SV_WriteDeltaEntity (const entity_state_t *from, const entity_state_t *to, 
 		bits |= U_ORIGIN3;*/
 
 #if KINGPIN
-	if (deltaorigin)
+	if (deltaorigin && !newentity && (bits & (U_ORIGIN1 | U_ORIGIN2 | U_ORIGIN3)))
 	{
-		if (bits&(U_ORIGIN1|U_ORIGIN2|U_ORIGIN3))
-		{
-			if (fabs(to->origin[0]-from->origin[0]) < 32
-				&& fabs(to->origin[1]-from->origin[1]) < 32
-				&& fabs(to->origin[2]-from->origin[2]) < 32)
-				bits |= U_ORIGINDELTA;
-		}
+		if (fabs(to->origin[0] - from->origin[0]) < 32
+			&& fabs(to->origin[1] - from->origin[1]) < 32
+			&& fabs(to->origin[2] - from->origin[2]) < 32)
+			bits |= U_ORIGINDELTA;
 	}
 #endif
 
@@ -245,8 +242,8 @@ void SV_WriteDeltaEntity (const entity_state_t *from, const entity_state_t *to, 
 	if ( to->sound != from->sound )
 	{
 #if KINGPIN
-		if (to->sound>255)
-			bits|=U_SOUND16;
+		if (to->sound > 255)
+			bits |= U_SOUND16;
 		else
 #endif
 		bits |= U_SOUND;
@@ -386,11 +383,11 @@ void SV_WriteDeltaEntity (const entity_state_t *from, const entity_state_t *to, 
 				if (c2 & 4)
 				{
 					int a2, c3 = 0;
-					for (a2=0; a2<MAX_MODEL_PARTS; a2++)
+					for (a2=0; a2<MAX_MODELPART_OBJECTS; a2++)
 						if (to->model_parts[a].skinnum[a2] != from->model_parts[a].skinnum[a2])
 							c3 |= 1 << a2;
 					MSG_WriteByte (c3);
-					for (a2=0; a2<MAX_MODEL_PARTS; a2++)
+					for (a2=0; a2<MAX_MODELPART_OBJECTS; a2++)
 						if (c3 & (1 << a2))
 							MSG_WriteByte (to->model_parts[a].skinnum[a2]);
 				}
@@ -403,7 +400,7 @@ void SV_WriteDeltaEntity (const entity_state_t *from, const entity_state_t *to, 
 
 	if (bits & U_FRAME8)
 		MSG_WriteByte (to->frame);
-	if (bits & U_FRAME16)
+	else if (bits & U_FRAME16)
 		MSG_WriteShort (to->frame);
 
 	if ((bits & U_SKIN8) && (bits & U_SKIN16))		//used for laser colors
@@ -439,11 +436,11 @@ void SV_WriteDeltaEntity (const entity_state_t *from, const entity_state_t *to, 
 	if (bits & U_ORIGINDELTA)
 	{
 		if (bits & U_ORIGIN1)
-			MSG_WriteByte ((int)((to->origin[0] - from->origin[0]) * 4 + 128));
+			MSG_WriteByte ((int)((to->origin[0] - from->origin[0]) * 4) + 128);
 		if (bits & U_ORIGIN2)
-			MSG_WriteByte ((int)((to->origin[1] - from->origin[1]) * 4 + 128));
+			MSG_WriteByte ((int)((to->origin[1] - from->origin[1]) * 4) + 128);
 		if (bits & U_ORIGIN3)
-			MSG_WriteByte ((int)((to->origin[2] - from->origin[2]) * 4 + 128));
+			MSG_WriteByte ((int)((to->origin[2] - from->origin[2]) * 4) + 128);
 	}
 	else
 #endif
@@ -511,18 +508,15 @@ SV_EmitPacketEntities
 Writes a delta update of an entity_state_t list to the message.
 =============
 */
-static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@null@*/*from, const client_frame_t *to, sizebuf_t *msg)
+static void SV_EmitPacketEntities (client_t *cl, const client_frame_t /*@null@*/*from, const client_frame_t *to, sizebuf_t *msg)
 {
 	const entity_state_t	*oldent;
-	const entity_state_t	*newent;
+	entity_state_t			*newent;
 
-//	int				removed[MAX_EDICTS];
-//	int				removedindex;
 	int				oldindex, newindex;
 	int				oldnum, newnum;
 	int				from_num_entities;
-
-//	removedindex = 0;
+	int				new_entities = 0; // MH: new entity count
 
 	//r1: pointless waste of byte since this is already inside an svc_frame
 #if !KINGPIN
@@ -555,19 +549,18 @@ static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@n
 
 	while (newindex < to->num_entities || oldindex < from_num_entities)
 	{
-#if !KINGPIN
-		//r1: anti-packet overflow
-		//note, worst case delta will generate 47 bytes of output. this should be extremely rare so we use 40.
-		if (sv_packetentities_hack->intvalue && MSG_GetLength() + msg->cursize >= (msg->maxsize - 40))
-			break;
-#endif
-
 		if (newindex >= to->num_entities)
 			newnum = 9999;
 		else
 		{
 			newent = &svs.client_entities[(to->first_entity+newindex)%svs.num_client_entities];
 			newnum = newent->number;
+			// MH: check for removed entity in reduced frame
+			if (!newnum)
+			{
+				newindex++;
+				continue;
+			}
 		}
 
 		if (oldindex >= from_num_entities)
@@ -577,6 +570,12 @@ static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@n
 			//Com_Printf ("server: its in old entities!\n");
 			oldent = &svs.client_entities[(from->first_entity+oldindex)%svs.num_client_entities];
 			oldnum = oldent->number;
+			// MH: check for removed entity in reduced frame
+			if (!oldnum)
+			{
+				oldindex++;
+				continue;
+			}
 		}
 
 		//don't send player to self
@@ -596,7 +595,7 @@ static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@n
 			// and prevents warping
 
 #if KINGPIN
-			SV_WriteDeltaEntity (oldent, newent, false, false, (sv.framenum+newnum)%20, cl->protocol_version);
+			SV_WriteDeltaEntity (oldent, newent, false, false, false /*((sv.framenum + newnum) % 20)*/, cl->protocol_version);
 #else
 			SV_WriteDeltaEntity (oldent, newent, false, newent->number <= maxclients->intvalue, cl->protocol, cl->protocol_version);
 #endif
@@ -608,10 +607,14 @@ static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@n
 	
 		if (newnum < oldnum)
 		{	// this is a new entity, send it from the baseline
+			// MH: limit new entities (except players) for reduced frame size
+			if (newnum > maxclients->intvalue && ++new_entities > cl->new_entities)
+				newent->number = 0;
+			else
 #if KINGPIN
-			SV_WriteDeltaEntity (&cl->lastlines[newnum], newent, true, true, false, cl->protocol_version);
+				SV_WriteDeltaEntity (&cl->lastlines[newnum], newent, true, true, false, cl->protocol_version);
 #else
-			SV_WriteDeltaEntity (&cl->lastlines[newnum], newent, true, true, cl->protocol, cl->protocol_version);
+				SV_WriteDeltaEntity (&cl->lastlines[newnum], newent, true, true, cl->protocol, cl->protocol_version);
 #endif
 			newindex++;
 			continue;
@@ -631,6 +634,10 @@ static void SV_EmitPacketEntities (const client_t *cl, const client_frame_t /*@n
 
 	MSG_WriteShort (0);	// end of packetentities
 	MSG_EndWriting (msg);
+
+	// MH: update new entity limit
+	if (cl->new_entities > new_entities)
+		cl->new_entities = new_entities;
 }
 
 #define Vec_RangeCap(x,minv,maxv) \
@@ -770,7 +777,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 #if KINGPIN
 		true;
 #else
-		((client->settings[CLSET_RECORDING]) ||
+		((client->settings[CLSET_RECORDING]) || client->demofile ||
         (sv_optimize_deltas->intvalue == 1 && client->protocol != PROTOCOL_R1Q2) ||
         (ps->pmove.pm_type >= PM_DEAD) ||
 		(sv_optimize_deltas->intvalue == 0));
@@ -873,7 +880,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 		*(int *)&ps->blend[3] != *(int *)&ops->blend[3])
 	{
 #if !KINGPIN
-		if (!client->settings[CLSET_NOBLEND] || client->settings[CLSET_RECORDING])
+		if (!client->settings[CLSET_NOBLEND] || client->settings[CLSET_RECORDING] || client->demofile)
 #endif
 		{
 			//special range checking here since we aren't *4 any more
@@ -908,7 +915,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 	if (ps->gunframe != ops->gunframe)
 	{
 #if !KINGPIN
-		if (!client->settings[CLSET_NOGUN] || client->settings[CLSET_RECORDING])
+		if (!client->settings[CLSET_NOGUN] || client->settings[CLSET_RECORDING] || client->demofile)
 #endif
 		{
 			pflags |= PS_WEAPONFRAME;
@@ -968,7 +975,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 #else
 	if (ps->gunindex != ops->gunindex)
 	{
-		if (!client->settings[CLSET_NOGUN] || client->settings[CLSET_RECORDING])
+		if (!client->settings[CLSET_NOGUN] || client->settings[CLSET_RECORDING] || client->demofile)
 			pflags |= PS_WEAPONINDEX;
 #ifndef NPROFILE
 		else
@@ -1980,14 +1987,14 @@ void SV_BuildClientFrame (client_t *client)
 
 #if KINGPIN
 /*
-	MH: The player's gun can sometimes disappear because the Kingpin client tries to add the gun to
-	its entity list last, which it can't do if the list is full (128 other entities). Each entity
-	can need multiple entities to display on the client side. "parts" counts them, but it may be
-	1-2 short for each player with a hat/cigar and it doesn't include temp entities (up to 48
-	explosions/gibs), so the actual number can be much higher. To leave room for those extra
+	MH: The player's gun can sometimes disappear because the (unpatched) Kingpin client tries to
+	add the gun to its entity list last, which it can't do if the list is full (128 other entities).
+	Each entity can need multiple entities to display on the client side. "parts" counts them, but
+	it may be 1-2 short for each player with a hat/cigar and it doesn't include temp entities (up to
+	48 explosions/gibs), so the actual number can be much higher. To leave room for those extra
 	entities, we'll try to limit the entities to 70 by removing any that are behind.
 */
-	if (parts > 70 && clent->client->ps.gunindex && !(clent->client->ps.pmove.pm_flags & PMF_CHASECAM))
+	if (!client->patched && parts > 70 && clent->client->ps.gunindex && !(clent->client->ps.pmove.pm_flags & PMF_CHASECAM))
 	{
 		int j;
 		vec3_t front;

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // MH: compress a buffer into a svc_cpacket message
 int CompressBuffer(byte *in, int inlen, sizebuf_t *out)
 {
-	static z_stream zs = {0};
+	static z_stream zs = { 0 };
 	int maxout, res;
 
 	if (inlen < 60)
@@ -35,7 +35,7 @@ int CompressBuffer(byte *in, int inlen, sizebuf_t *out)
 		maxout = inlen - 1; // require size reduction
 
 	if (sv_compress->intvalue > Z_BEST_COMPRESSION)
-		Cvar_Set ("sv_compress", va("%d", Z_BEST_COMPRESSION));
+		Cvar_Set("sv_compress", va("%d", Z_BEST_COMPRESSION));
 
 	if (!zs.next_in)
 		deflateInit2(&zs, sv_compress->intvalue, Z_DEFLATED, -12, 8, Z_DEFAULT_STRATEGY);
@@ -74,19 +74,29 @@ extern	int	rd_target;
 
 void SV_FlushRedirect (int sv_redirected, char *outputbuf)
 {
-	if (sv_redirected == RD_PACKET)
+	// MH: redirect to a client
+	if (sv_redirected & RD_CLIENTNUM)
 	{
-		Netchan_OutOfBandPrint (NS_SERVER, &net_from, "print\n%s", outputbuf);
-
-		//FIXME: this is REALLY nasty
-		if (sv_rcon_showoutput->intvalue)
+		int client = sv_redirected - RD_CLIENTNUM;
+		if (*outputbuf && client < maxclients->intvalue && svs.clients[client].state >= cs_connected)
 		{
-			int	saved_target;
-			saved_target = rd_target;
-			rd_target = 0;
-			Com_Printf ("%s", LOG_SERVER, outputbuf);
-			rd_target = saved_target;
+			MSG_BeginWriting(svc_print);
+			MSG_WriteByte(PRINT_HIGH);
+			MSG_WriteString(outputbuf);
+			SV_AddMessage(&svs.clients[client], true);
 		}
+	}
+	else
+		Netchan_OutOfBandPrint(NS_SERVER, &net_from, "print\n%s", outputbuf);
+
+	//FIXME: this is REALLY nasty
+	if (sv_rcon_showoutput->intvalue)
+	{
+		int	saved_target;
+		saved_target = rd_target;
+		rd_target = 0;
+		Com_Printf("%s", LOG_SERVER, outputbuf);
+		rd_target = saved_target;
 	}
 }
 
@@ -354,6 +364,26 @@ static void SV_AddMessageSingle (client_t *cl, qboolean reliable)
 			}
 		}
 	}
+
+#if KINGPIN
+/*
+	MH: CS_MODELSKINS configstring updates have an extra byte that the client will only read after
+	spawning. Before then it will be mistaken for the start of a svc_muzzleflash3 message. So pad
+	the message with 3 more bytes to satisfy that, and make those 3 bytes valid on their own in
+	case the extra byte is read.
+*/
+	if (cl->state != cs_spawned && next->data[0] == svc_configstring)
+	{
+		short cs = *(short*)(next->data + 1);
+		if (cs > CS_MODELSKINS && cs < CS_MODELSKINS + MAX_MODELS && next->data[next->cursize - 1] == 3)
+		{
+			next->data[next->cursize] = svc_stufftext;
+			next->data[next->cursize + 1] = 0;
+			next->data[next->cursize + 2] = svc_nop;
+			next->cursize += 3;
+		}
+	}
+#endif
 }
 
 /*
@@ -931,10 +961,11 @@ void SV_WriteReliableMessages (client_t *client, int buffSize)
 				//it fits, write it in
 				// MH: append text to previous message if possible to save a few bytes
 #if KINGPIN
-				if (lastmsg >= 0 && message->data[0] == svc_print && (message->data[1] & 3) < PRINT_CHAT && client->netchan.message.data[lastmsg] == message->data[0] && client->netchan.message.data[lastmsg + 1] == message->data[1])
+				if (lastmsg >= 0 && message->data[0] == svc_print && (message->data[1] & 3) < PRINT_CHAT
 #else
-				if (lastmsg >= 0 && message->data[0] == svc_print && message->data[1] < PRINT_CHAT && client->netchan.message.data[lastmsg] == message->data[0] && client->netchan.message.data[lastmsg+1] == message->data[1])
+				if (lastmsg >= 0 && message->data[0] == svc_print && message->data[1] < PRINT_CHAT
 #endif
+					&& client->netchan.message.data[lastmsg] == message->data[0] && client->netchan.message.data[lastmsg + 1] == message->data[1] && client->netchan.message.cursize - lastmsg + message->cursize < 2048)
 				{
 					client->netchan.message.cursize--; // remove terminator
 					SZ_Write (&client->netchan.message, message->data + 2, message->cursize - 2);
@@ -1046,6 +1077,7 @@ static qboolean SV_SendClientDatagram (client_t *client)
 	{
 		byte		frame_buf[4096];
 		sizebuf_t	frame;
+		qboolean	reduced = false;
 
 		SV_BuildClientFrame (client);
 
@@ -1053,15 +1085,14 @@ static qboolean SV_SendClientDatagram (client_t *client)
 		SZ_Init (&frame, frame_buf, sizeof(frame_buf));
 		frame.allowoverflow = true;
 
+		client->new_entities = 9999; // MH: reset new entity limit
+
 #if !KINGPIN
-		//adjust for packetentities hack
-		if (sv_packetentities_hack->intvalue == 1 || client->protocol == PROTOCOL_ORIGINAL)
+		if (client->protocol == PROTOCOL_ORIGINAL)
 			frame.maxsize = msg.maxsize;
 #endif
 
-#if !defined(NO_ZLIB) && !KINGPIN
 retryframe:
-#endif
 
 		// send over all the relevant entity_state_t
 		// and the player_state_t
@@ -1165,8 +1196,6 @@ recheck:
 			else
 				frame.overflowed = true;
 		}
-		if (frame.overflowed)
-			Com_Printf ("WARNING: Dropped frame for %s (exceeded %d bytes).\n", LOG_SERVER|LOG_WARNING, client->name, msg.maxsize);
 #else
 		//if frame overflowed, we're screwed either way :)
 		if (!frame.overflowed)
@@ -1193,15 +1222,7 @@ recheck:
 #endif
 				}
 				else
-				{
-					if (sv_packetentities_hack->intvalue == 2)
-					{
-						Com_DPrintf ("SV_SendClientDatagram: zlib svc_frame %d -> %d for %s still didn't fit, using msg.maxsize of %d\n", frame.cursize, compressed_frame_len, client->name, msg.maxsize);
-						SZ_Clear (&frame);
-						frame.maxsize = msg.maxsize;
-						goto retryframe;
-					}
-				}
+					frame.overflowed = true; // MH: trigger reduced frame (replaces sv_packetentities_hack)
 #endif
 			}
 			else
@@ -1211,9 +1232,23 @@ recheck:
 			}
 		}
 #endif
-	}
-
+		// MH: try reducing new entities if frame is too big
+		if (frame.overflowed)
+		{
+			if (client->new_entities)
+			{
+				client->new_entities = reduced ? 0 : client->new_entities / 2; // first try half, and then none
+				reduced = true;
+				SZ_Clear(&frame);
+				goto retryframe;
+			}
+			Com_Printf("WARNING: Dropped frame for %s (exceeded %d bytes).\n", LOG_SERVER | LOG_WARNING, client->name, msg.maxsize);
+			reduced = false;
+		}
 doneframe:
+		if (reduced)
+			Com_Printf("WARNING: Reduced frame for %s (exceeded %d bytes).\n", LOG_SERVER | LOG_WARNING, client->name, msg.maxsize);
+	}
 
 	if (msg.overflowed)
 	{
@@ -1346,12 +1381,8 @@ doneframe:
 		if (!message)
 			break;
 
-#if KINGPIN
 		// MH: keep unreliable stufftext messages (not very time sensitive)
 		if (!message->reliable && message->data[0] != svc_stufftext)
-#else
-		if (!message->reliable)
-#endif
 		{
 			// MH: reset stored layout if not sending it
 			if (message->data[0] == svc_layout)

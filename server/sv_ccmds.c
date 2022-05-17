@@ -1104,62 +1104,42 @@ static void SV_DelCvarBan_f (void)
 {
 	char	*match;
 
+	// MH: renamed from "delcvarban"
 	if (Cmd_Argc() < 2)
 	{
 		Com_Printf ("Purpose: Remove a cvar check.\n"
-#if KINGPIN
 					"Syntax : delcvarcheck <cvarname>\n"
 					"Example: delcvarcheck gl_modulate\n", LOG_GENERAL);
-#else
-					"Syntax : delcvarban <cvarname>\n"
-					"Example: delcvarban gl_modulate\n", LOG_GENERAL);
-#endif
 		return;
 	}
 
 	match = Cmd_Argv(1);
 
 	if (DeleteVarBan (&cvarbans, match))
-#if KINGPIN
 		Com_Printf ("cvar check '%s' removed.\n", LOG_GENERAL, match);
 	else
 		Com_Printf ("cvar check '%s' not found.\n", LOG_GENERAL, match);
-#else
-		Com_Printf ("cvarban '%s' removed.\n", LOG_GENERAL, match);
-	else
-		Com_Printf ("cvarban '%s' not found.\n", LOG_GENERAL, match);
-#endif
 }
 
 static void SV_DelUserinfoBan_f (void)
 {
 	char	*match;
 
+	// MH: renamed from "deluserinfoban"
 	if (Cmd_Argc() < 2)
 	{
 		Com_Printf ("Purpose: Remove a userinfo check.\n"
-#if KINGPIN
 					"Syntax : deluserinfocheck <varname>\n"
 					"Example: deluserinfocheck rate\n", LOG_GENERAL);
-#else
-					"Syntax : deluserinfoban <varname>\n"
-					"Example: deluserinfoban rate\n", LOG_GENERAL);
-#endif
 		return;
 	}
 
 	match = Cmd_Argv(1);
 
 	if (DeleteVarBan (&userinfobans, match))
-#if KINGPIN
 		Com_Printf ("userinfo check '%s' removed.\n", LOG_GENERAL, match);
 	else
 		Com_Printf ("userinfo check '%s' not found.\n", LOG_GENERAL, match);
-#else
-		Com_Printf ("userinfoban '%s' removed.\n", LOG_GENERAL, match);
-	else
-		Com_Printf ("userinfoban '%s' not found.\n", LOG_GENERAL, match);
-#endif
 }
 
 static qboolean AddVarBan (varban_t *list, char *cvar, char *blocktype, char *iffound)
@@ -1270,25 +1250,19 @@ static void SV_AddCvarBan_f (void)
 {
 	char		*cvar, *blocktype, *iffound;
 
+	// MH: renamed from "addcvarban"
 	if (Cmd_Argc() < 4)
 	{
 		Com_Printf ("Purpose: Add a simple check for a client cvar.\n"
-#if KINGPIN
 					"Syntax : addcvarcheck <cvarname> <[!]((=|<|>)numvalue|[~|#]string|*)> <KICK|BLACKHOLE|LOG|MESSAGE|STUFF|EXEC> message\n"
 					"Example: addcvarcheck gl_modulate >2 KICK Use a lower gl_modulate\n"
 					"Example: addcvarcheck frkq2_bot * BLACKHOLE\n"
 					"Example: addcvarcheck vid_ref sw KICK Software mode is not allowed\n"
 					"Example: addcvarcheck timescale !=1 KICK Illegal timescale value!\n"
 					"Example: addcvarcheck rate <5000 STUFF set rate 5000\n"
-#else
-					"Syntax : addcvarban <cvarname> <[!]((=|<|>)numvalue|[~|#]string|*)> <KICK|BLACKHOLE|LOG|MESSAGE|STUFF|EXEC> message\n"
-					"Example: addcvarban gl_modulate >2 KICK Use a lower gl_modulate\n"
-					"Example: addcvarban frkq2_bot * BLACKHOLE\n"
-					"Example: addcvarban vid_ref sw KICK Software mode is not allowed\n"
-					"Example: addcvarban timescale !=1 KICK Illegal timescale value!\n"
-					"Example: addcvarban rate <5000 STUFF set rate 5000\n"
-					"Example: addcvarban version ~R1Q2 KICK R1Q2 is an evil hacked client!\n"
-					"Example: addcvarban version \"Q2 3.20 PPC\" KICK That version is not allowed\n"
+#if !KINGPIN
+					"Example: addcvarcheck version ~R1Q2 KICK R1Q2 is an evil hacked client!\n"
+					"Example: addcvarcheck version \"Q2 3.20 PPC\" KICK That version is not allowed\n"
 #endif
 					"WARNING: If the match string requires quotes it can not be added via rcon.\n", LOG_GENERAL);
 		return;
@@ -1302,35 +1276,25 @@ static void SV_AddCvarBan_f (void)
 		return;
 
 	if (sv.state)
-#if KINGPIN
 		Com_Printf ("cvar check for '%s %s' added.\n", LOG_GENERAL, cvar, blocktype);
-#else
-		Com_Printf ("cvarban for '%s %s' added.\n", LOG_GENERAL, cvar, blocktype);
-#endif
 }
 
 static void SV_AddUserinfoBan_f (void)
 {
 	char		*cvar, *blocktype, *iffound;
 
+	// MH: renamed from "adduserinfoban"
 	if (Cmd_Argc() < 4)
 	{
 		Com_Printf ("Purpose: Add a simple check for a userinfo variable.\n"
-#if KINGPIN
 					"Syntax : adduserinfocheck <varname> <[!]((=|<|>)numvalue|[~|#]string|*)> <KICK|BLACKHOLE|LOG|MESSAGE|STUFF|EXEC> message\n"
 					"Example: adduserinfocheck rate >15000 KICK Your rate value is too high!\n"
 					"Example: adduserinfocheck name ~lamer KICK Lamers aren't welcome here.\n"
 					"Example: adduserinfocheck name !~[R1Q2] KICK This server is for R1Q2 clan members only!\n"
 					"Example: adduserinfocheck msg !=0 KICK You must use msg 0 on this server.\n"
 					"Example: adduserinfocheck fov <90 KICK No zoom aliases allowed!\n"
-#else
-					"Syntax : adduserinfoban <varname> <[!]((=|<|>)numvalue|[~|#]string|*)> <KICK|BLACKHOLE|LOG|MESSAGE|STUFF|EXEC> message\n"
-					"Example: adduserinfoban rate >15000 KICK Your rate value is too high!\n"
-					"Example: adduserinfoban name ~lamer KICK Lamers aren't welcome here.\n"
-					"Example: adduserinfoban name !~[R1Q2] KICK This server is for R1Q2 clan members only!\n"
-					"Example: adduserinfoban msg !=0 KICK You must use msg 0 on this server.\n"
+#if !KINGPIN
 					"Example: adduserinfoban spectator =1 KICK No spectators please!\n"
-					"Example: adduserinfoban fov <90 KICK No zoom aliases allowed!\n"
 #endif
 					"WARNING: If the match string requires quotes it can not be added via rcon.\n", LOG_GENERAL);
 		return;
@@ -1344,11 +1308,7 @@ static void SV_AddUserinfoBan_f (void)
 		return;
 
 	if (sv.state)
-#if KINGPIN
 		Com_Printf ("userinfo check for '%s %s' added.\n", LOG_GENERAL, cvar, blocktype);
-#else
-		Com_Printf ("userinfoban for '%s %s' added.\n", LOG_GENERAL, cvar, blocktype);
-#endif
 }
 
 //===============================================================
@@ -2297,11 +2257,11 @@ loop:
 	else if (statusMethod == 3)
 	{
 #if KINGPIN
-		Com_Printf (" # name            idle dup qual packetloss\n", LOG_GENERAL);
-		Com_Printf ("-- --------------- ---- --- ---- ----------\n", LOG_GENERAL);
+		Com_Printf (" # name            idle qual packetloss\n", LOG_GENERAL);
+		Com_Printf ("-- --------------- ---- ---- ----------\n", LOG_GENERAL);
 #else
-		Com_Printf (" # name            msglen overflow\n", LOG_GENERAL);
-		Com_Printf ("-- --------------- ------ --------\n", LOG_GENERAL);
+		Com_Printf (" # name            msglen idle qual packetloss\n", LOG_GENERAL);
+		Com_Printf ("-- --------------- ------ ---- ---- ----------\n", LOG_GENERAL);
 #endif
 	}
 	// MH: client demo recordings
@@ -2313,12 +2273,14 @@ loop:
 	else
 	{
 		Com_Printf ("map : %s\n", LOG_GENERAL, sv.name);
+#if KINGPIN
 		// MH: moved "name" to 2nd column to match other status methods
 		Com_Printf (" # name            score ping lastmsg ip address            rate/pps ver\n", LOG_GENERAL);
-#if KINGPIN
 		Com_Printf ("-- --------------- ----- ---- ------- --------------------- -------- ----\n", LOG_GENERAL);
 #else
-		Com_Printf ("-- --------------- ----- ---- ------- --------------------- -------- ---\n", LOG_GENERAL);
+		// wallfly needs original column order
+		Com_Printf ("num score ping name            lastmsg ip address            rate/pps ver\n", LOG_GENERAL);
+		Com_Printf ("--- ----- ---- --------------- ------- --------------------- -------- ---\n", LOG_GENERAL);
 #endif
 		//ideally want to keep this < 80 chars to avoid wrapping.
 /*
@@ -2352,16 +2314,16 @@ loop:
 #endif
 				continue;
 			case 3:
-#if KINGPIN
 				{
 					char buf[16];
 					Com_sprintf(buf, sizeof(buf), "%.1f/%.1f", cl->netchan.out_total ? ((float)cl->netchan.out_dropped / (float)cl->netchan.out_total) * 100 : 0.0f,
 						cl->netchan.in_total ? ((float)cl->netchan.in_dropped / (float)cl->netchan.in_total) * 100 : 0.0f);
-					Com_Printf ("%2i %-15s %4d %3d %4d %10s\n", LOG_GENERAL, i, cl->name, cl->idletime / 10, cl->netchan.packetdup, 100 - (int)cl->quality, buf);
-				}
+#if KINGPIN
+					Com_Printf ("%2i %-15s %4d %4d %10s\n", LOG_GENERAL, i, cl->name, cl->idletime / 10, 100 - (int)cl->quality, buf);
 #else
-				Com_Printf ("%2i %-15s %-6d %.3f\n", LOG_GENERAL, i, cl->name, cl->netchan.message.buffsize, cl->commandMsecOverflowCount);
+					Com_Printf ("%2i %-15s %6d %4d %4d %10s\n", LOG_GENERAL, i, cl->name, cl->netchan.message.buffsize, cl->idletime / 10, 100 - (int)cl->quality, buf);
 #endif
+				}
 				continue;
 			// MH: client demo recordings
 			case 4:
@@ -2372,7 +2334,11 @@ loop:
 				break;
 		}
 
+#if KINGPIN
 		Com_Printf ("%2i %-15s %5i ", LOG_GENERAL, i, cl->name, cl->edict->client->ps.stats[STAT_FRAGS]);
+#else
+		Com_Printf ("%3i %5i ", LOG_GENERAL, i, cl->edict->client->ps.stats[STAT_FRAGS]);
+#endif
 
 		if (cl->state == cs_connected || cl->state == cs_spawning)
 		{
@@ -2400,7 +2366,11 @@ loop:
 
 		s = NET_AdrToString (&cl->netchan.remote_address);
 
+#if KINGPIN
 		Com_Printf ("%7i %-22s", LOG_GENERAL, svs.realtime - cl->lastmessage, s);
+#else
+		Com_Printf ("%-15s %7i %-22s", LOG_GENERAL, cl->name, svs.realtime - cl->lastmessage, s);
+#endif
 		
 		//r1: qport not so useful
 		{
@@ -2890,7 +2860,7 @@ void SV_WriteClientDemoMessage (client_t *client, int length, const byte *data)
 // MH: write serverdata to client demo
 void SV_WriteClientDemoServerData (client_t *cl)
 {
-	char	buf_data[MAX_MSGLEN];
+	char	buf_data[1390];
 	sizebuf_t	buf;
 	int		i;
 	int		len;
@@ -2904,7 +2874,7 @@ void SV_WriteClientDemoServerData (client_t *cl)
 
 	// send the serverdata
 	MSG_BeginWriting (svc_serverdata);
-	MSG_WriteLong (PROTOCOL_ORIGINAL);
+	MSG_WriteLong (cl->protocol);
 	MSG_WriteLong (svs.spawncount);
 	MSG_WriteByte (1);	// demos are always attract loops
 #if KINGPIN
@@ -2915,6 +2885,15 @@ void SV_WriteClientDemoServerData (client_t *cl)
 #endif
 	MSG_WriteShort ((int)(cl - svs.clients));
 	MSG_WriteString (sv.configstrings[CS_NAME]);
+#if !KINGPIN
+	if (cl->protocol == PROTOCOL_R1Q2)
+	{
+		MSG_WriteByte(0);
+		MSG_WriteShort(MINOR_VERSION_R1Q2);
+		MSG_WriteByte(0);
+		MSG_WriteByte(sv_strafejump_hack->intvalue);
+	}
+#endif
 	MSG_EndWriting (&buf);
 
 	// configstrings
@@ -3107,7 +3086,7 @@ void SV_SetStartTime_f (void)
 	unsigned h, m;
 	int d;
 
-	if (Cmd_Argc() == 2 && !strcmp(Cmd_Argv(1), "none"))
+	if (Cmd_Argc() == 2 && (!strcmp(Cmd_Argv(1), "none") || !strcmp(Cmd_Argv(1), "-")))
 	{
 		game_start_time = 0;
 		return;
@@ -3156,6 +3135,27 @@ void SV_Uptime_f (void)
 	Com_Printf ("%s\n", LOG_GENERAL, TimeDurationString(time(NULL) - server_start_time, true));
 }
 
+// MH: move all clients to another server
+void SV_MoveAll_f (void)
+{
+	netadr_t adr;
+
+	if (Cmd_Argc() != 2)
+	{
+		Com_Printf ("Purpose: Move all connected clients to another server.\n"
+					"Syntax : moveall <address:port>\n", LOG_GENERAL);
+		return;
+	}
+
+	if (strlen(Cmd_Args()) > 60 || !NET_StringToAdr(Cmd_Args(), &adr))
+	{
+		Com_Printf("Bad server address.\n", LOG_GENERAL);
+		return;
+	}
+
+	Cmd_ExecuteString(va("stuffall connect %s", Cmd_Args()));
+}
+
 //===========================================================
 
 /*
@@ -3199,37 +3199,21 @@ void SV_InitOperatorCommands (void)
 
 	Cmd_AddCommand ("addcommandban", SV_AddCommandBan_f);
 	Cmd_AddCommand ("delcommandban", SV_DelCommandBan_f);
-#if KINGPIN
-	Cmd_AddCommand ("listcommandbans", SV_ListBannedCommands_f);
-#else
-	Cmd_AddCommand ("listbannedcommands", SV_ListBannedCommands_f);
-#endif
+	Cmd_AddCommand ("listcommandbans", SV_ListBannedCommands_f); // MH: renamed from "listbannedcommands"
 
 	Cmd_AddCommand ("addserveralias", SV_AddServerAlias_f);
 	Cmd_AddCommand ("delserveralias", SV_DelServerAlias_f);
 	Cmd_AddCommand ("listserveraliases", SV_ListServerAliases_f);
 
-#if KINGPIN
-	Cmd_AddCommand ("addcvarcheck", SV_AddCvarBan_f);
-	Cmd_AddCommand ("delcvarcheck", SV_DelCvarBan_f);
-	Cmd_AddCommand ("listcvarchecks", SV_ListCvarBans_f);
+	Cmd_AddCommand ("addcvarcheck", SV_AddCvarBan_f); // MH: renamed from "addcvarban"
+	Cmd_AddCommand ("delcvarcheck", SV_DelCvarBan_f); // MH: renamed from "delcvarban"
+	Cmd_AddCommand ("listcvarchecks", SV_ListCvarBans_f); // MH: renamed from "listcvarbans"
 
-	Cmd_AddCommand ("adduserinfocheck", SV_AddUserinfoBan_f);
-	Cmd_AddCommand ("deluserinfocheck", SV_DelUserinfoBan_f);
-	Cmd_AddCommand ("listuserinfochecks", SV_ListUserinfoBans_f);
+	Cmd_AddCommand ("adduserinfocheck", SV_AddUserinfoBan_f); // MH: renamed from "adduserinfoban"
+	Cmd_AddCommand ("deluserinfocheck", SV_DelUserinfoBan_f); // MH: renamed from "deluserinfoban"
+	Cmd_AddCommand ("listuserinfochecks", SV_ListUserinfoBans_f); // MH: renamed from "listuserinfobans"
 
-	Cmd_AddCommand ("checkcvars", SV_CheckCvarBans_f);
-#else
-	Cmd_AddCommand ("addcvarban", SV_AddCvarBan_f);
-	Cmd_AddCommand ("delcvarban", SV_DelCvarBan_f);
-	Cmd_AddCommand ("listcvarbans", SV_ListCvarBans_f);
-
-	Cmd_AddCommand ("adduserinfoban", SV_AddUserinfoBan_f);
-	Cmd_AddCommand ("deluserinfoban", SV_DelUserinfoBan_f);
-	Cmd_AddCommand ("listuserinfobans", SV_ListUserinfoBans_f);
-
-	Cmd_AddCommand ("checkcvarbans", SV_CheckCvarBans_f);
-#endif
+	Cmd_AddCommand ("checkcvars", SV_CheckCvarBans_f); // MH: renamed from "checkcvarbans"
 
 	Cmd_AddCommand ("stuff", SV_Stuff_f);
 	Cmd_AddCommand ("stuffall", SV_Stuffall_f);
@@ -3285,6 +3269,9 @@ void SV_InitOperatorCommands (void)
 
 	// MH: show uptime
 	Cmd_AddCommand ("uptime", SV_Uptime_f);
+
+	// MH: move all clients to another server
+	Cmd_AddCommand ("moveall", SV_MoveAll_f);
 
 #if KINGPIN
 	// MH: set downloadable client files

@@ -452,6 +452,25 @@ static cvar_t *Cvar_Set2 (const char *var_name, const char *value, qboolean forc
 		}
 	}
 
+	// MH: check for a start time at end of hostname
+	if (!strcmp(var_name, "hostname"))
+	{
+		char *at = strrchr(value, '@');
+		if (at && !strchr(at, ' '))
+		{
+			int h, m;
+			if (sscanf(at + 1, "%u:%u", &h, &m) == 2 && h <= 23 && m <= 59)
+			{
+				Cmd_ExecuteString(va("setstarttime %s\n", at + 1));
+				do
+				{
+					*at = 0;
+				}
+				while (at > value && *--at == ' ');
+			}
+		}
+	}
+
 	if (!strcmp(value, var->string))
 		return var;		// not changed
 
@@ -618,7 +637,8 @@ int Cvar_GetNumLatchedVars (void)
 
 	for (var = cvar_vars ; var ; var = var->next)
 	{
-		if (!var->latched_string)
+		// MH: ignore cvars that don't need a reload
+		if (!var->latched_string || (var->flags & CVAR_NORELOAD))
 			continue;
 		latched++;
 	}

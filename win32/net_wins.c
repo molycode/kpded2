@@ -42,7 +42,7 @@ static cvar_t	*net_rcvbuf;
 static cvar_t	*net_sndbuf;
 
 #if KINGPIN
-static SOCKET		ip_sockets[3] = {0}; // MH: extra socket for Gamespy status requests
+static SOCKET		ip_sockets[3]; // MH: extra socket for Gamespy status requests
 #else
 static SOCKET		ip_sockets[2];
 #endif

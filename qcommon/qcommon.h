@@ -22,13 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef _QCOMMON_H
 
+#if KINGPIN
+#define NPROFILE 1
+#endif
+
 #ifdef NDEBUG
 	#include "../build.h"
-#if KINGPIN
 	#define	VERSION		KPBUILD
-#else
-	#define	VERSION		"b"BUILD
-#endif
 #else
 	#define BUILD "DEBUG BUILD"
 	#define	VERSION		BUILD
@@ -45,13 +45,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef _WIN32
 	#ifdef _WIN64
 		#ifdef NDEBUG
-			#define BUILDSTRING "Win64 RELEASE"
+			#define BUILDSTRING "Win64" // MH: removed "RELEASE"
 		#else
 			#define BUILDSTRING "Win64 DEBUG"
 		#endif
 	#else
 		#ifdef NDEBUG
-			#define BUILDSTRING "Win32 RELEASE"
+			#define BUILDSTRING "Win32" // MH: removed "RELEASE"
 		#else
 			#define BUILDSTRING "Win32 DEBUG"
 		#endif
@@ -144,7 +144,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if KINGPIN
 #define R1Q2_VERSION_STRING "kpded " VERSION " " CPUSTRING " " __DATE__ " " BUILDSTRING
 #else
-#define R1Q2_VERSION_STRING "R1Q2 " VERSION " " CPUSTRING " " __DATE__ " " BUILDSTRING
+#define R1Q2_VERSION_STRING "R1Q2/kpded " VERSION " " CPUSTRING " " __DATE__ " " BUILDSTRING
 #endif
 
 //============================================================================

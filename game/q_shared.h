@@ -20,11 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef _QSHARED_H
 
-#if KINGPIN
-#define DEDICATED_ONLY 1
-#define NPROFILE 1
-#endif
-
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -601,6 +596,8 @@ CVARS (console variables)
 #define	CVAR_NOSET		8	// don't allow change from console at all,
 							// but can be set from the command line
 #define	CVAR_LATCH		16	// save changes until server restart
+
+#define CVAR_NORELOAD	32	// MH: use with CVAR_LATCH to apply change without reloading the game
 
 // nothing outside the Cvar_*() functions should modify these fields!
 typedef struct cvar_s

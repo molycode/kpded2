@@ -309,12 +309,6 @@ typedef struct client_s
 	unsigned					totalMsecUsed;
 	unsigned					initialRealTime;
 
-#if !KINGPIN
-	int							timeSkewTotal;
-	int							timeSkewSamples;
-	int							timeSkewLastDiff;
-#endif
-
 	// MH: dead r1ch.net anticheat stuff removed
 
 	int							spawncount;
@@ -331,6 +325,9 @@ typedef struct client_s
 	int							entity_events[MAX_EDICTS];
 #endif
 
+	// MH: new entities (excluding players) in current frame
+	int				new_entities;
+
 	// MH: last layout message (to avoid sending duplicates)
 	char			layout[1024];
 	int				layout_unreliable;
@@ -339,19 +336,19 @@ typedef struct client_s
 	int				cl_maxfps;
 	unsigned		lastfpscheck;
 
-#if KINGPIN
 	// MH: connection quality
 	float			quality;
 	unsigned		quality_last;
 	int				quality_acc;
 
+#if KINGPIN
 	// MH: ping for current usercmd
 	int				currentping;
+#endif
 
 	// MH: recent usercmd delays
 	int				cmd_delays[20];
 	int				cmd_delayindex;
-#endif
 
 	// MH: demo recording
 	char			demoname[MAX_QPATH];
@@ -627,8 +624,6 @@ extern cvar_t	*sv_gamedebug;
 #if !KINGPIN
 extern cvar_t	*sv_calcpings_method;
 
-extern cvar_t	*sv_packetentities_hack;
-
 extern cvar_t	*sv_optimize_deltas;
 
 extern cvar_t	*sv_disallow_download_sprites_hack;
@@ -677,7 +672,7 @@ void Blackhole (netadr_t *from, qboolean isAutomatic, int mask, int method, cons
 //
 // sv_send.c
 //
-typedef enum {RD_NONE, RD_CLIENT, RD_PACKET} redirect_t;
+typedef enum {RD_NONE, RD_CLIENT, RD_PACKET, RD_CLIENTNUM = 0x100} redirect_t; // MH: RD_CLIENTNUM = client number base
 
 //r1: since this is only used for rcon now, why not throw the data into one
 //    huge damn packet (avoids reassembly issues on client putting the data
@@ -911,4 +906,8 @@ extern cvar_t	*g_features;
 #endif
 
 // MH: inform game DLL of client's country in ClientConnect userinfo
+#if KINGPIN
 #define GMF_WANT_COUNTRY	0x400
+#else
+#define GMF_WANT_COUNTRY	0x200 // 0x400 conflicts with q2pro's GMF_ENHANCED_SAVEGAMES
+#endif

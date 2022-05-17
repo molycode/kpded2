@@ -7,8 +7,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{5CCD2D4E-440C-4040-B1F5-3992013E34A0}</ProjectGuid>
-    <RootNamespace>kpded2</RootNamespace>
+    <ProjectGuid>{5CCD2D4E-440C-4040-B1F5-3992013E34A1}</ProjectGuid>
+    <RootNamespace>q2ded2</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>7.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -38,7 +38,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>KINGPIN;DEDICATED_ONLY;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEDICATED_ONLY;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -47,15 +47,12 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>zlib\zlib.lib;ws2_32.lib;winmm.lib;msvcrt_winxp.obj;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
-    <ResourceCompile>
-      <PreprocessorDefinitions>KINGPIN</PreprocessorDefinitions>
-    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="game\q_shared.c" />
@@ -70,22 +67,16 @@
     <ClCompile Include="qcommon\cmd.c" />
     <ClCompile Include="qcommon\cmodel.c" />
     <ClCompile Include="qcommon\common.c" />
-    <ClCompile Include="qcommon\crc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="qcommon\crc.c" />
     <ClCompile Include="qcommon\cvar.c" />
     <ClCompile Include="qcommon\files.c" />
-    <ClCompile Include="qcommon\ioapi.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="qcommon\ioapi.c" />
     <ClCompile Include="qcommon\md4.c" />
     <ClCompile Include="qcommon\mersennetwister.c" />
     <ClCompile Include="qcommon\net_chan.c" />
     <ClCompile Include="qcommon\pmove.c" />
     <ClCompile Include="qcommon\redblack.c" />
-    <ClCompile Include="qcommon\unzip.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="qcommon\unzip.c" />
     <ClCompile Include="server\sv_ccmds.c" />
     <ClCompile Include="server\sv_ents.c" />
     <ClCompile Include="server\sv_game.c" />

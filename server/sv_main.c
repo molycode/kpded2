@@ -35,9 +35,7 @@ cvar_t	*sv_timedemo;
 cvar_t	*sv_fpsflood;
 
 cvar_t	*sv_enforcetime;
-#if KINGPIN
-cvar_t	*sv_enforcetime_kick;
-#endif
+cvar_t	*sv_enforcetime_kick;	// MH: irregular timing kick threshold
 
 cvar_t	*timeout;				// seconds without any message
 cvar_t	*zombietime;			// seconds to sink messages after disconnect
@@ -167,9 +165,6 @@ cvar_t	*sv_new_entflags;
 cvar_t	*sv_validate_playerskins;
 
 cvar_t	*sv_idlekick;
-#if !KINGPIN
-cvar_t	*sv_packetentities_hack;
-#endif
 cvar_t	*sv_entity_inuse_hack;
 
 cvar_t	*sv_force_reconnect;
@@ -217,12 +212,6 @@ cvar_t	*sv_global_master;
 
 #if !KINGPIN
 cvar_t	*sv_disallow_download_sprites_hack;
-
-cvar_t	*sv_timescale_check;
-cvar_t	*sv_timescale_kick;
-
-cvar_t	*sv_timescale_skew_check;
-cvar_t	*sv_timescale_skew_kick;
 #endif
 
 cvar_t	*sv_features;
@@ -1930,7 +1919,7 @@ static const char *FindPlayer (netadr_t *from)
 		if (cl->state == cs_free)
 			continue;
 
-		if (!NET_CompareBaseAdr (from, &cl->netchan.remote_address))
+		if (!NET_CompareAdr (from, &cl->netchan.remote_address)) // MH: include port in check, for multiple clients with same IP
 			continue;
 
 		return cl->name;
@@ -1951,7 +1940,7 @@ Redirect all printfs
 static void SVC_RemoteCommand (void)
 {
 	//static int last_rcon_time = 0;
-	int		i;
+	int		i, j;
 	char	remaining[2048];
 
 	if (sv_rcon_ratelimit->intvalue)
@@ -1969,7 +1958,11 @@ static void SVC_RemoteCommand (void)
 	if (!i)
 		RateSample (&svs.ratelimit_badrcon);
 
-	Com_BeginRedirect (RD_PACKET, sv_outputbuf, sv_rcon_buffsize->intvalue, SV_FlushRedirect);
+	// MH: if they're a connected client then send the reply via their reliable channel
+	for (j = 0; j < maxclients->intvalue; j++)
+		if (svs.clients[j].state == cs_spawned && NET_CompareAdr(&net_from, &svs.clients[j].netchan.remote_address))
+			break;
+	Com_BeginRedirect(j < maxclients->intvalue ? RD_CLIENTNUM | j : RD_PACKET, sv_outputbuf, j < maxclients->intvalue ? 32 : sv_rcon_buffsize->intvalue, SV_FlushRedirect);
 
 	if (!i)
 	{
@@ -2031,7 +2024,17 @@ static void SVC_RemoteCommand (void)
 		}*/
 		else
 		{
-			Q_strncpy (remaining, Cmd_Args2(2), sizeof(remaining)-1);
+			// MH: preserve quotes in command
+			int p = 0;
+			for (i = 2; i < Cmd_Argc(); i++)
+			{
+				if (strchr(Cmd_Argv(i), ' '))
+					p += Com_sprintf(remaining + p, sizeof(remaining) - p, "\"%s\" ", Cmd_Argv(i));
+				else
+					p += Com_sprintf(remaining + p, sizeof(remaining) - p, "%s ", Cmd_Argv(i));
+				if (p == sizeof(remaining) - 1)
+					break;
+			}
 		}
 
 		if (strlen(remaining) == sizeof(remaining)-1)
@@ -2237,7 +2240,6 @@ for their command moves.  If they exceed it, assume cheating.
 */
 static void SV_GiveMsec (void)
 {
-	int			msecpoint;
 	int			i;
 	client_t	*cl;
 
@@ -2245,9 +2247,6 @@ static void SV_GiveMsec (void)
 
 	if (sv.framenum & 15)
 		return;
-
-	//for checking against whether client is lagged out (no packets) or cheating (high msec)
-	msecpoint = svs.realtime - 2500;
 
 	for (i=0 ; i<maxclients->intvalue ; i++)
 	{
@@ -2262,148 +2261,31 @@ static void SV_GiveMsec (void)
 
 		if (cl->state == cs_spawned)
 		{
-#if KINGPIN // MH: doing things a bit differently here (could be applied to Q2 too?)
+			// MH: doing things a bit differently here
 			if (cl->initialRealTime)
 			{
-				diff = cl->totalMsecUsed - (curtime - cl->initialRealTime);
+				diff = cl->totalMsecUsed - (cl->netchan.last_received - cl->initialRealTime);
+				if (diff > 0)
+				{
+					if (cl->commandMsecOverflowCount < 0)
+						cl->commandMsecOverflowCount = 0; // no accumulated time allowance
+					else
+						cl->commandMsecOverflowCount *= 0.97f; // allow a bit of leeway
+				}
 				cl->commandMsecOverflowCount += diff;
-				cl->commandMsecOverflowCount *= 0.96f; // allow 4% leeway
-				if (cl->commandMsecOverflowCount < 0)
-					cl->commandMsecOverflowCount = 0; // no accumulated time allowance
 
 				if (abs(diff) > 100)
-					Com_DPrintf ("%s has diff %d (%d %d) %.3f\n", cl->name, diff, cl->totalMsecUsed, (curtime - cl->initialRealTime), cl->commandMsecOverflowCount);
+					Com_DPrintf ("%s has diff %d (%d %d) %.3f\n", cl->name, diff, cl->totalMsecUsed, (cl->netchan.last_received - cl->initialRealTime), cl->commandMsecOverflowCount);
 
-#if KINGPIN
 				if (sv_enforcetime->intvalue && sv_enforcetime_kick->value && cl->commandMsecOverflowCount > sv_enforcetime_kick->value * 1000 && !(cl->edict->svflags & SVF_NOCLIENT))
-#else
-				if (sv_enforcetime->intvalue && cl->commandMsecOverflowCount > sv_enforcetime->value && !(cl->edict->svflags & SVF_NOCLIENT))
-#endif
 				{
-					SV_KickClient (cl, "irregular timing (speed cheat?)", "You were kicked from the game for having irregular timing.\n");
+					SV_KickClient (cl, "irregular timing (speed cheat?)", "You were kicked from the game for having irregular timing. This could be caused by excessive lag or other network conditions.\n");
 					continue;
 				}
 			}
 
 			cl->totalMsecUsed = 0;
 			cl->initialRealTime = cl->netchan.last_received;
-#else
-			//r1: better? speed cheat detection via use of msec underflows
-			if (cl->commandMsec < 0)
-			{
-#ifndef _DEBUG
-				//don't spam listen servers in release
-				if (!(Com_ServerState() && !dedicated->intvalue))
-#endif
-					Com_DPrintf ("SV_GiveMsec: %s has commandMsec < 0: %d (lagging/speed cheat?)\n", cl->name, cl->commandMsec);
-				cl->commandMsecOverflowCount += 1.0f + (-cl->commandMsec / 250.0f);
-			}
-			else if (cl->commandMsec > (sv_msecs->intvalue / 2))
-			{
-				//they aren't lagged out (still sending packets) but didn't even use half their msec. wtf?
-				if (cl->lastmessage > msecpoint)
-				{
-#ifndef _DEBUG
-				//don't spam listen servers in release
-				if (!(Com_ServerState() && !dedicated->intvalue))
-#endif
-					Com_DPrintf ("SV_GiveMsec: %s has commandMsec %d (lagging/float cheat?)\n", cl->name, cl->commandMsec);
-					cl->commandMsecOverflowCount += 1.0f * ((float)cl->commandMsec / sv_msecs->value);
-				}
-			}
-			else
-			{
-				//normal movement, drop counter a bit
-				cl->commandMsecOverflowCount *= 0.985f;
-			}
-
-			if (cl->commandMsecOverflowCount > 1.0f)
-				Com_DPrintf ("%s has %.2f overflowCount\n", cl->name, cl->commandMsecOverflowCount);
-
-			if (sv_enforcetime->intvalue > 1 && cl->commandMsecOverflowCount >= sv_enforcetime->value)
-			{
-				SV_KickClient (cl, "irregular movement", "You were kicked from the game for irregular movement. This could be caused by excessive lag or other network conditions.\n");
-				continue;
-			}
-
-#ifdef _DEBUG
-			if (sv_timescale_check->intvalue)
-#else
-			if (dedicated->intvalue && sv_timescale_check->intvalue)
-#endif
-			{
-				//so initial msecs don't skew the results
-				if (!cl->initialRealTime)
-				{
-					cl->timeSkewLastDiff = 0;
-					cl->timeSkewSamples = 0;
-					cl->timeSkewTotal = 0;
-					cl->totalMsecUsed = 0;
-					cl->initialRealTime = svs.realtime;
-				}
-
-				//FIXME: use real time, fix for internet.
-				diff = (svs.realtime - cl->initialRealTime) - cl->totalMsecUsed;
-
-				//Com_Printf ("client %d: %d, server: %d, diff: %d\n", LOG_GENERAL, i, cl->totalMsecUsed, (svs.realtime - cl->initialRealTime), diff);
-
-				//allow configurable slop
-				if (diff < -sv_timescale_check->intvalue)
-				{
-					if (sv_timescale_kick->intvalue && diff < -sv_timescale_kick->intvalue)
-						SV_KickClient (cl, "time skew (1)", NULL);
-					Com_Printf ("WARNING: Negative time difference of %d ms for %s[%s], possible speed cheat or server is overloaded!\n", LOG_WARNING|LOG_SERVER, diff, cl->name, NET_AdrToString (&cl->netchan.remote_address));
-				}
-
-				//never let clients accumulate too much 'free' time from clock offsets
-				if (diff > 2000)
-				{
-					cl->timeSkewLastDiff = 0;
-					diff = 0;
-					cl->totalMsecUsed = (svs.realtime - cl->initialRealTime);
-				}
-				
-				//detect sudden bursts
-				if (sv_timescale_skew_check->intvalue && cl->timeSkewLastDiff)
-				{
-					if (diff - cl->timeSkewLastDiff < -sv_timescale_skew_check->intvalue)
-					{
-						if (sv_timescale_skew_kick->intvalue && diff - cl->timeSkewLastDiff < -sv_timescale_skew_kick->intvalue)
-							SV_KickClient (cl, "time skew (2)", NULL);
-						Com_Printf ("WARNING: Sudden time skew of %d ms for %s[%s], possible speed cheat / lag spike!\n", LOG_WARNING|LOG_SERVER, diff - cl->timeSkewLastDiff, cl->name, NET_AdrToString (&cl->netchan.remote_address));
-					}
-				}
-
-				cl->timeSkewLastDiff = diff;
-			}
-
-				/*if (cl->timeSkewSamples > 10)
-			{
-				int	averageSkew;
-
-				averageSkew = cl->timeSkewTotal / cl->timeSkewSamples;
-
-				if (diff - cl->timeSkewLastDiff < -sv_timescale_skew_check->intvalue)
-				{
-					Com_Printf ("WARNING: Sudden time skew of %d (mean:%d) ms for %s[%s], possible speed cheat activated!\n", LOG_WARNING|LOG_SERVER, diff - cl->timeSkewLastDiff, averageSkew, cl->name, NET_AdrToString (&cl->netchan.remote_address));
-				}
-				else
-				{
-					//only record 'normal' samples
-					cl->timeSkewTotal += diff - cl->timeSkewLastDiff;
-					cl->timeSkewSamples++;
-				}
-
-				//Com_Printf ("client %d: average skew %d, last skew %d\n", LOG_GENERAL,i, averageSkew, diff - cl->timeSkewLastDiff);
-			}
-			else
-			{
-				//just hope these are good
-				cl->timeSkewTotal += diff - cl->timeSkewLastDiff;
-				cl->timeSkewSamples++;
-			}*/
-#endif
-			
 		}
 
 		cl->commandMsec = sv_msecs->intvalue;		// 1600 + some slop
@@ -2666,9 +2548,11 @@ static void SV_ReadPackets (void)
 		
 		//MSG_ReadShort (&net_message);
 
+#if KINGPIN
 		// MH: make sure it's big enough
 		if (net_message.cursize < 10)
 			continue;
+#endif
 
 		qport = *(uint16 *)(net_message_buffer + 8);
 
@@ -3569,7 +3453,7 @@ static void SV_UpdateWindowTitle (cvar_t *cvar, char *old, char *newvalue)
 #if KINGPIN
 		Com_sprintf (buff, sizeof(buff), "%s - kpded " VERSION " (port %d)", newvalue, server_port);
 #else
-		Com_sprintf (buff, sizeof(buff), "%s - R1Q2 " VERSION " (port %d)", newvalue, server_port);
+		Com_sprintf (buff, sizeof(buff), "%s - R1Q2/kpded " VERSION " (port %d)", newvalue, server_port);
 #endif
 
 		//for win32 this will set window titlebar text
@@ -3714,14 +3598,10 @@ void SV_Init (void)
 
 	//r1: default 1
 	sv_enforcetime = Cvar_Get ("sv_enforcetime", "1", 0);
-#if KINGPIN
 	sv_enforcetime->help = "Enforce time movements to prevent speed hacking. Default 1.\n0: Disabled\n1: Enabled, prevent excess movement (and kick depending on sv_enforcetime_kick)\n";
 	// MH: a separate kick option is needed for Kingpin because most mods reset sv_enforcetime to 1
 	sv_enforcetime_kick = Cvar_Get ("sv_enforcetime_kick", "0", 0);
-	sv_enforcetime_kick->help = "Kick clients that exceed this many seconds of time offset. Default 0.\n0: Disabled\n1+: Enabled (increase value to reduce false positives)\n";
-#else
-	sv_enforcetime->help = "Enforce time movements to prevent speed hacking. Default 1.\n0: Disabled\n1: Enabled, prevent excess movement\n2+: Enabled, kick on excessive movement (increase value to reduce false positives from lag)\n";
-#endif
+	sv_enforcetime_kick->help = "Kick clients that exceed this many seconds of time offset. Default 0.\n0: Disabled\n1+: Enabled (increase value to reduce false positives from lag)\n";
 
 #ifndef NO_SERVER
 #if KINGPIN
@@ -3858,11 +3738,7 @@ void SV_Init (void)
 
 	//r1: kick high fps users flooding packets
 	// MH: modified to check cl_maxfps before kicking
-#if KINGPIN
-	sv_fpsflood = Cvar_Get ("sv_maxpps", "0", 0);
-#else
-	sv_fpsflood = Cvar_Get ("sv_fpsflood", "0", 0);
-#endif
+	sv_fpsflood = Cvar_Get ("sv_maxpps", "0", 0); // MH: renamed from "sv_fpsflood"
 	sv_fpsflood->help = "Limit users to sending this many packets/sec (tied to the client's cl_maxfps cvar) and kick if they persistently exceed it. 0 means no limit. Default 0.\n";
 
 	//r1: randomize starting framenum to thwart map timers
@@ -3983,12 +3859,6 @@ void SV_Init (void)
 	sv_idlekick = Cvar_Get ("sv_idlekick", "0", 0);
 	sv_idlekick->help = "Seconds before kicking idle players. 0 means no limit.\n";
 
-#if !KINGPIN
-	//r1: cut off packetentities if they get too large?
-	sv_packetentities_hack = Cvar_Get ("sv_packetentities_hack", "0", 0);
-	sv_packetentities_hack->help = "Help to avoid SZ_Getspace: overflow and 'freezing' effects on the client by only sending partial amounts of packetentities. This will break delta state and may cause odd effects on the client. Default 0.\n0: Disabled\n1: Enabled, single pass (no attempt at compressing for protocol 35)\n2: Enabled, two pass (attempts to compress for protocol 35 clients)\n";
-#endif
-
 	//r1: don't send ents that are marked !inuse?
 	sv_entity_inuse_hack = Cvar_Get ("sv_entity_inuse_hack", "0", 0);
 	sv_entity_inuse_hack->help = "Save network bandwidth by not sending entities that are marked as no longer in use. This only applies to buggy mods that do not mark entities as unused when they are no longer in use. Note that some mods may have problems with this if set to 1. Default 0.\n";
@@ -4104,18 +3974,6 @@ void SV_Init (void)
 #if !KINGPIN
 	sv_disallow_download_sprites_hack = Cvar_Get ("sv_disallow_download_sprites_hack", "1", 0);
 	sv_disallow_download_sprites_hack->help = "Disallow downloads of sprites (.sp2) to protocol 34 clients. 3.20 and other clients do not fetch linked skins on sprites, which may cause a crash when trying to render them with missing skins. Default 1.\n";
-
-	sv_timescale_check = Cvar_Get ("sv_timescale_check", "0", 0);
-	sv_timescale_check->help = "Amount of milliseconds of time offset allowed by clients before a warning is issued or the client is kicked (depending on sv_timescale_kick). Default 0 (disabled).\n";
-
-	sv_timescale_kick = Cvar_Get ("sv_timescale_kick", "0", 0);
-	sv_timescale_kick->help = "Kick clients that exceed this many milliseconds of time offset. Default 0.\n";
-
-	sv_timescale_skew_check = Cvar_Get ("sv_timescale_skew_check", "0", 0);
-	sv_timescale_skew_check->help = "Amount of milliseconds of sudden time offset allowed by clients before a warning is issued or the client is kicked (depending on sv_timescale_skew_kick). Default 0 (disabled).\n";
-
-	sv_timescale_skew_kick = Cvar_Get ("sv_timescale_skew_kick", "0", 0);
-	sv_timescale_skew_kick->help = "Kick clients that exhibit sudden time skew exeeding this many milliseconds. Default 0.\n";
 #endif
 
 #if KINGPIN

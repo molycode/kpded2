@@ -202,11 +202,7 @@ tagmalloc_tag_t tagmalloc_tags[] =
 	{TAGMALLOC_CLIENT_IGNORE, "CLIENT_IGNORE", 0},
 #endif
 	{TAGMALLOC_BLACKHOLE, "BLACKHOLE", 0},
-#if KINGPIN
-	{TAGMALLOC_CVARBANS, "CVARCHECKS", 0},
-#else
-	{TAGMALLOC_CVARBANS, "CVARBANS", 0},
-#endif
+	{TAGMALLOC_CVARBANS, "CVARCHECKS", 0}, // MH: renamed from "CVARBANS"
 	//{TAGMALLOC_MSG_QUEUE, "MSGQUEUE", 0},
 	{TAGMALLOC_CMDBANS, "CMDBANS", 0},
 	{TAGMALLOC_REDBLACK, "REDBLACK", 0},
@@ -419,13 +415,8 @@ void Com_Printf (const char *fmt, int level, ...)
 			}
 		}
 
-#if KINGPIN
 		// MH: 1-3 behave as usual, 4 = appended+buffered
 		if (logfile_active->intvalue > 1 && logfile_active->intvalue < 4)
-#else
-		//r1: allow logging > 2 (append) but not forcing flushing.
-		if (logfile_active->intvalue & 1)
-#endif
 			fflush (logfile);
 	}
 }
@@ -2712,14 +2703,11 @@ void Qcommon_Init (int argc, char **argv)
 
 #if KINGPIN
 	Com_Printf ("====== Kingpin Initialized ======\n", LOG_GENERAL);	
+#else
+	Com_Printf("====== Quake2 Initialized ======\n", LOG_GENERAL);
+#endif
 	Com_Printf ("kpded " KPBUILD " (based on R1Q2 b" BUILD "), compiled " __DATE__ ".\n"
 				BUILDSTRING " " CPUSTRING " (%s)\n\n", LOG_GENERAL, binary_name);
-#else
-	Com_Printf ("====== Quake2 Initialized ======\n", LOG_GENERAL);	
-	Com_Printf ("R1Q2 build " BUILD ", compiled " __DATE__ ".\n"
-				"http://www.r1ch.net/stuff/r1q2/\n"
-				BUILDSTRING " " CPUSTRING " (%s)\n\n", LOG_GENERAL, binary_name);
-#endif
 
 #ifndef DEDICATED_ONLY
 	CL_Init ();

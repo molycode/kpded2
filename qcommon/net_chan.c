@@ -340,7 +340,7 @@ int Netchan_Transmit (netchan_t *chan, int length, const byte *data)
 	{
 		if (NET_SendPacket (chan->sock, send.cursize, send_buf, &chan->remote_address) == -1)
 			return -1;
-		// MH: don't sent duplicates if there is no recent packet loss
+		// MH: don't send duplicates if there is no recent packet loss
 		if (!chan->out_dropped)
 			break;
 	}
