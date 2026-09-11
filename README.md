@@ -33,6 +33,24 @@ sudo apt install gcc-multilib zlib1g-dev:i386
 
 A missing 32-bit zlib shows up as `Could NOT find ZLIB (missing: ZLIB_LIBRARY)` at configure time.
 
+Building a 32-bit zlib yourself and pointing `ZLIB_ROOT` at it works too, and a **static** one is
+worth the trouble: it leaves `libc6:i386` as the server's only 32-bit runtime dependency, which
+matters on a host where enabling multiarch is a nuisance. `libc6:i386` itself cannot be avoided -
+the server `dlopen`s the game library, and a statically linked glibc cannot do that reliably.
+
+```bash
+CC=gcc CFLAGS="-m32 -fPIC -O3" ./configure --static --prefix=/opt/zlib-i386
+make && make install
+cmake --preset linux-gcc-release -DZLIB_ROOT=/opt/zlib-i386
+```
+
+## Running
+
+`+set public 0` keeps a server off the master list. **Do this when testing**: the Kingpin build
+announces to `master.kingpin.info` by default, so an unconfigured throwaway server advertises itself
+publicly under whatever address its heartbeat came from. A server stopped with SIGTERM de-registers
+on the way out; one killed outright lingers until the master expires it.
+
 GCC is what ships. A Clang build is a diagnostic second opinion and is much noisier - see `todo.md`.
 A GCC Release build also writes a stripped copy to `build/<preset>/ship/kpded2`, carrying the same
 GNU build id as the unstripped binary beside it, so a crash in the shipped server still symbolises.
