@@ -2920,7 +2920,7 @@ static void SV_RunGameFrame (void)
 		}
 
 		// never get more than one tic behind
-		if (sv.time < svs.realtime)
+		if (sv.time < (uint32)svs.realtime)
 		{
 			if (sv_showclamp->intvalue && sv.framenum > 1) // MH: 1st frame is always clamped
 				Com_Printf ("sv highclamp: %u < %d = %d\n", LOG_SERVER, sv.time, svs.realtime, svs.realtime - sv.time);
@@ -3131,7 +3131,7 @@ void SV_Frame (int msec)
 	SV_ReadPackets ();
 
 	// move autonomous things around if enough time has passed
-	if (!sv_timedemo->intvalue && svs.realtime < sv.time)
+	if (!sv_timedemo->intvalue && (uint32)svs.realtime < sv.time)
 	{
 		// never let the time get too far off
 #if KINGPIN

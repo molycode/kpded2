@@ -428,7 +428,7 @@ qboolean Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 // discard stale or duplicated packets
 //
 
-	if (sequence <= chan->incoming_sequence)
+	if (sequence <= (uint32)chan->incoming_sequence)
 	{
 		if (showdrop->intvalue)
 			Com_Printf ("%s:Out of order packet %i at %i\n", LOG_NET
@@ -457,14 +457,14 @@ qboolean Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 	chan->in_dropped += chan->dropped;
 
 	// MH: use acknowledgements to measure server->client packet loss (replaces sv_lag_stats option)
-	if (sequence_ack > chan->incoming_acknowledged)
+	if (sequence_ack > (uint32)chan->incoming_acknowledged)
 	{
-		if (chan->countacks && (curtime - chan->last_received < 90 || sequence_ack == chan->incoming_acknowledged + 1))
+		if (chan->countacks && (curtime - chan->last_received < 90 || sequence_ack == (uint32)(chan->incoming_acknowledged + 1)))
 		{
 			chan->out_total += sequence_ack - chan->incoming_acknowledged;
 			chan->out_dropped += sequence_ack - chan->incoming_acknowledged - 1;
 		}
-		else if (chan->reliable_length && sequence_ack >= chan->last_reliable_sequence)
+		else if (chan->reliable_length && sequence_ack >= (uint32)chan->last_reliable_sequence)
 		{
 			chan->out_total++;
 			if (reliable_ack != chan->reliable_sequence)
