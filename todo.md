@@ -10,7 +10,16 @@ was found in. Each item states what is known, what is only predicted, and what w
 temporary: a GCC 16 Release build still emits 54 warnings, so turning them into errors today would
 simply make the tree unbuildable.
 
-What is left, measured with `cmake --build --preset linux-gcc_16-release`:
+All four Linux presets build with **0 errors**. Measured at `5c3aa5c`:
+
+| preset | warnings |
+|---|---|
+| `linux-gcc-debug` | 57 |
+| `linux-gcc-release` | 55 |
+| `linux-clang-debug` | 1382 |
+| `linux-clang-release` | 1382 |
+
+What is left on GCC:
 
 | count | warning | character |
 |---|---|---|
@@ -23,9 +32,27 @@ None of these is known to be a bug. They are volume work that wants a careful pa
 blanket cast. Once the count is zero, restore `-Werror` to both GCC and Clang and `/WX` to MSVC, and
 this section goes away.
 
-**Clang is far noisier than GCC** - 1382 warnings against GCC's 54, in both Debug and Release. It has
-not been triaged at all. Clang is the diagnostic second opinion here, never the shipped build, so
-this is informational until the GCC count is down.
+Debug adds 3 `-Wformat-overflow` that Release does not.
+
+**Clang's 1382 is really 55.** 1327 of them are a single repeated `-Wunknown-attributes`: Clang does
+not implement `callee_pop_aggregate_return` and ignores it. Guarding the attribute collapses Clang to
+GCC's number, and is the cheapest thing to do first:
+
+```c
+#if defined(__GNUC__) && !defined(__clang__)
+#define EXPORT __attribute__((callee_pop_aggregate_return(1)))
+#else
+#define EXPORT
+#endif
+```
+
+Ignoring the attribute is **not** a miscompile - the Clang build's `SV_Trace` still ends `ret $0x4`,
+because Clang's i386 default is already callee-pops (verified with objdump). Keep the attribute for
+GCC, where the original `(0)` was actively harmful; on Clang it only ever was a no-op.
+
+**Clang finds one thing GCC does not:** `-Wsometimes-uninitialized` at `qcommon/cmodel.c:657`,
+"variable 'p' is used uninitialized whenever '||' condition is true". That is the only remaining
+warning in the class that has actually produced bugs in this tree - look at it first.
 
 ## q2ded2 is not in the CMake build
 
