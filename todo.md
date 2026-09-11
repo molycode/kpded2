@@ -13,28 +13,27 @@ would hand the next Windows session a tree that may not build.
 **What would settle it:** build on Windows, clear whatever `/W4` reports, then add `/WX` - directly
 after `/W4`, which is where kp-mod's own `msvc.cmake` carries it.
 
-## q2ded2 is not in the CMake build
+## q2ded2 has no build on Linux any more
 
-`Makefile` builds two targets, `kpded2` and `q2ded2`; the CMake build defines only `Kpded2`. This is
-a deliberate divergence, not an oversight.
+Upstream's `Makefile` built `kpded2` and `q2ded2`; it is gone, so `q2ded2` now exists only as
+`q2ded2.sln`, `q2ded2.vcxproj` and its `.filters`. The CMake build has never defined the target.
 
-`q2ded2` compiles `qcommon/unzip.c`, which is vendored minizip: its crypt helpers take
-`const unsigned long *pcrc_32_tab`, while zlib 1.2.7 and later return `const z_crc_t *` (that is,
-`const unsigned int *`) from `get_crc_table()`. GCC 14 and later make the assignment a hard error
-rather than a warning:
+It was left out deliberately. `q2ded2` compiles `qcommon/unzip.c`, vendored minizip, whose crypt
+helpers take `const unsigned long *pcrc_32_tab` while zlib 1.2.7 and later return `const z_crc_t *`
+from `get_crc_table()`. GCC 14 and later make that a hard error:
 
 ```
 qcommon/unzip.c:1184:24: error: assignment to 'const long unsigned int *' from incompatible
 pointer type 'const z_crc_t *'
 ```
 
-Repairing it means changing the signatures in `qcommon/crypt.h` and the struct member that feeds
-them - vendored third-party code, in a target this fork does not use. The `Makefile` still builds
-`q2ded2` with the system GCC 13, which only warns.
+The Windows `kpded2` build compiles those same three files against the vendored `zlib/zlib.h`, which
+is old enough to still use `unsigned long`, so it is unaffected - and it silences them with `/w`.
 
-**What would settle it:** refresh the vendored minizip to a version that uses `z_crc_t`, or decide
-that a Kingpin fork has no business shipping a plain Quake 2 server and drop the target from the
-`Makefile` too.
+**What would settle it:** decide whether a Kingpin fork has any business shipping a plain Quake 2
+server. If not, the three `q2ded2.*` project files go the way the `Makefile` did. If so, the
+vendored minizip needs refreshing to a version that uses `z_crc_t` before it can build with a
+current compiler.
 
 ## Windows is unbuilt and untested
 

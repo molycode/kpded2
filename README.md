@@ -89,9 +89,6 @@ GNU build id as the unstripped binary beside it, so a crash in the shipped serve
 > only seeds the cache on a build tree's **first** configure, so an existing tree silently keeps the
 > old flags.
 
-`Makefile` is upstream's build and still works; it builds `q2ded2` as well, which the CMake build
-deliberately does not. See `todo.md`.
-
 ## Building on Windows
 
 `kpded2.sln` is the only proven Windows entry point. The `windows-msvc-*` presets exist but have

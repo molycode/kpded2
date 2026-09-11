@@ -10,7 +10,7 @@ if(PROJECT_IS_TOP_LEVEL)
 
 	# Replace CMake's per-config defaults rather than appending to them, so exactly one optimisation
 	# level and one -g reach the compiler - -g comes from cmake/compilers/ for both configurations.
-	# -O3 rather than the Makefile's -O2, to stay level with kp-mod; the float flags further down are
+	# -O3 rather than upstream's -O2, to stay level with kp-mod; the float flags further down are
 	# what actually keep results in step with the client.
 	set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 	set(CMAKE_C_FLAGS_DEBUG "")
