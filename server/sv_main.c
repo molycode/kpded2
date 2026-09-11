@@ -1807,7 +1807,7 @@ gotnewcl:
 
 	// MH: set default packetdup
 	newcl->netchan.packetdup = sv_packetdup->intvalue;
-	if (newcl->netchan.packetdup > (unsigned)sv_max_packetdup->intvalue)
+	if (newcl->netchan.packetdup > (unsigned int)sv_max_packetdup->intvalue)
 		newcl->netchan.packetdup = sv_max_packetdup->intvalue;
 
 	// MH: disable idle mode

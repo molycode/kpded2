@@ -2857,7 +2857,7 @@ static void SV_PacketDup_f (void)
 
 	i = atoi (Cmd_Argv(1));
 
-	if (i > (unsigned)sv_max_packetdup->intvalue)
+	if (i > (unsigned int)sv_max_packetdup->intvalue)
 	{
 		SV_ClientPrintf (sv_client, PRINT_HIGH, "Invalid packetdup value, this server allows a maximum of %d duplicate packets.\n", sv_max_packetdup->intvalue);
 		return;
