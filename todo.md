@@ -7,30 +7,35 @@ was found in. Each item states what is known, what is only predicted, and what w
 
 `cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
 `-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: every Linux preset still emits around twenty warnings, so turning them into errors today
+temporary: every Linux preset still emits eleven or more warnings, so turning them into errors today
 would simply make the tree unbuildable.
 
 All four Linux presets build with **0 errors**, from a clean build of each:
 
 | preset | warnings |
 |---|---|
-| `linux-gcc_16-debug` | 24 |
-| `linux-gcc_16-release` | 22 |
-| `linux-clang_22-debug` | 21 |
-| `linux-clang_22-release` | 21 |
+| `linux-gcc_16-debug` | 14 |
+| `linux-gcc_16-release` | 12 |
+| `linux-clang_22-debug` | 11 |
+| `linux-clang_22-release` | 11 |
 
 What is left, Release on each compiler:
 
 | GCC | Clang | warning | character |
 |---|---|---|---|
-| 10 | 10 | `-Wpointer-sign` | `char *` against `byte *` at the network and filesystem boundaries |
 | 8 | 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
 | 2 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves` in `server/sv_main.c`, both `static` and both unreferenced in this configuration |
 | 1 | 1 | `-Wunused-variable` | `state` in `qcommon/common.c:496` |
 
-GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 22 is not a warning
+GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 12 is not a warning
 at all - LTO's "using serial compilation of 4 LTRANS jobs" carries the word and is counted by a
 `warning:` grep.
+
+`-Wpointer-sign` is **done** - all 10, in `4516e7a`. Five of them were one bad signature: `gsseckey`
+took `byte *` and called `strlen` on it while its only caller passes `char *`. It is `char *` now.
+Verified by disassembling both builds and comparing per function with addresses normalised - of 601
+symbols exactly one differs, `SV_GamespyPacket`, where `gsseckey` inlines - and by three Gamespy
+`\secure\` challenges returning identical `\validate\` keys from a running server.
 
 `-Wsign-compare` is **done** - 33 of them, cleared across six commits. Twenty were a signed loop
 counter or `strlen` result against a `sizeof` and took a cast. Six were a `uint32` against an int
