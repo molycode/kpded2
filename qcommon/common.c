@@ -232,7 +232,7 @@ static void	(*rd_flush)(int target, char *buffer);
 
 void Com_BeginRedirect (int target, char *buffer, int buffersize, void *flush)
 {
-	if (!target || !buffer || !buffersize || !flush)
+	if (!target || !buffer || buffersize <= 0 || !flush)
 		return;
 	rd_target = target;
 	rd_buffer = buffer;
@@ -281,12 +281,16 @@ void Com_Printf (const char *fmt, int level, ...)
 
 	if (rd_target)
 	{
-		if ((strlen (msg) + strlen(rd_buffer)) > (rd_buffersize - 1))
+		size_t	used;
+
+		if ((strlen (msg) + strlen(rd_buffer)) > (size_t)(rd_buffersize - 1))
 		{
 			rd_flush(rd_target, rd_buffer);
 			*rd_buffer = 0;
 		}
-		strcat (rd_buffer, msg);
+
+		used = strlen (rd_buffer);
+		strncat (rd_buffer, msg, rd_buffersize - 1 - used);
 		return;
 	}
 

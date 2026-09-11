@@ -3889,6 +3889,7 @@ void SV_Init (void)
 	//r1: control rcon buffer size
 	sv_rcon_buffsize = Cvar_Get ("sv_rcon_buffsize", "1384", 0);
 	sv_rcon_buffsize->changed = _rcon_buffsize_changed;
+	_rcon_buffsize_changed (sv_rcon_buffsize, sv_rcon_buffsize->string, sv_rcon_buffsize->string);
 	sv_rcon_buffsize->help = "Amount of bytes the rcon buffer holds before flushing. You should not change this unless you know what you are doing. Default 1384.\n";
 
 	//r1: show output of rcon in console?
