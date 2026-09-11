@@ -8,3 +8,43 @@
 
 # Build results
 Release/
+
+# Build directories
+build/
+cmake-build-*/
+obj/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+CMakeUserPresets.json
+
+# Build output
+*.o
+*.obj
+*.d
+kpded2
+q2ded2
+
+# IDE and editor files
+.vscode/
+.idea/
+.qtcreator/
+CMakeLists.txt.user
+*.autosave
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+.cache/

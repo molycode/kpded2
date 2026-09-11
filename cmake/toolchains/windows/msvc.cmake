@@ -1,0 +1,6 @@
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_VERSION 10.0)
+
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
+message(STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")

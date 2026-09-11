@@ -1,0 +1,184 @@
+{
+	"version": 6,
+	"cmakeMinimumRequired": {
+		"major": 4,
+		"minor": 3,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true
+		},
+		{
+			"name": "linux-gcc-debug",
+			"inherits": "base",
+			"displayName": "linux_gcc_debug",
+			"description": "Debug build with GCC (uses KPD_GCC_PATH or system GCC)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/gcc-Debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/gcc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "linux-gcc-release",
+			"inherits": "base",
+			"displayName": "linux_gcc_release",
+			"description": "Release build with GCC (uses KPD_GCC_PATH or system GCC)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/gcc-Release",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/gcc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "linux-clang-debug",
+			"inherits": "base",
+			"displayName": "linux_clang_debug",
+			"description": "Debug build with Clang (uses KPD_CLANG_PATH or system Clang)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/clang-Debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/clang.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "linux-clang-release",
+			"inherits": "base",
+			"displayName": "linux_clang_release",
+			"description": "Release build with Clang (uses KPD_CLANG_PATH or system Clang)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/clang-Release",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/clang.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "windows-msvc-debug",
+			"inherits": "base",
+			"displayName": "windows_msvc_debug",
+			"description": "Debug build with MSVC",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+			"generator": "Visual Studio 17 2022",
+			"architecture": {
+				"value": "Win32"
+			},
+			"binaryDir": "${sourceDir}/build/msvc-Debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/windows/msvc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "windows-msvc-release",
+			"inherits": "base",
+			"displayName": "windows_msvc_release",
+			"description": "Release build with MSVC",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+			"generator": "Visual Studio 17 2022",
+			"architecture": {
+				"value": "Win32"
+			},
+			"binaryDir": "${sourceDir}/build/msvc-Release",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/windows/msvc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "linux-gcc-debug",
+			"configurePreset": "linux-gcc-debug",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-gcc-release",
+			"configurePreset": "linux-gcc-release",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-clang-debug",
+			"configurePreset": "linux-clang-debug",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-clang-release",
+			"configurePreset": "linux-clang-release",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "windows-msvc-debug",
+			"configurePreset": "windows-msvc-debug",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		},
+		{
+			"name": "windows-msvc-release",
+			"configurePreset": "windows-msvc-release",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		}
+	]
+}
