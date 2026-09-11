@@ -507,7 +507,7 @@ NORETURN void Com_Error (int code, const char *fmt, ...)
 #endif
 
 		//r1: auto-restart server code on game crash
-		if ((code == ERR_GAME || code == ERR_DROP))
+		if (state && (code == ERR_GAME || code == ERR_DROP))
 		{
 			const char *resmap;
 
