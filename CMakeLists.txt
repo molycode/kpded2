@@ -106,9 +106,6 @@ if(NOT MSVC)
 	# to stop promising the optimiser they cannot alias rather than to silence the 149 warnings it emits.
 	target_compile_options(Kpded2 PRIVATE -fno-strict-aliasing)
 
-	# -O2 rather than CMake's -O3, matching the Makefile: a server whose float results drift from the
-	# client's produces prediction misses.
-
 	# GCC runs LTRANS serially unless given a job count, and Clang has no such spelling.
 	if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		set(KPD_LTO_FLAG -flto=auto)
@@ -116,6 +113,8 @@ if(NOT MSVC)
 		set(KPD_LTO_FLAG -flto)
 	endif()
 
+	# -O2 rather than CMake's -O3, matching the Makefile: a server whose float results drift from the
+	# client's produces prediction misses.
 	target_compile_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
 	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
 endif()
