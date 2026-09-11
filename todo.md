@@ -10,7 +10,8 @@ was found in. Each item states what is known, what is only predicted, and what w
 **the MSVC build has never been configured or compiled here**, see below, so turning `/WX` on blind
 would hand the next Windows session a tree that may not build.
 
-**What would settle it:** build on Windows, clear whatever `/W4` reports, then add `/WX`.
+**What would settle it:** build on Windows, clear whatever `/W4` reports, then add `/WX` - directly
+after `/W4`, which is where kp-mod's own `msvc.cmake` carries it.
 
 ## q2ded2 is not in the CMake build
 
