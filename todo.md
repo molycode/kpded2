@@ -3,17 +3,14 @@
 Work that is understood but parked, because it cannot be finished or verified in the environment it
 was found in. Each item states what is known, what is only predicted, and what would settle it.
 
-## Turn on -Werror
+## Turn on /WX for MSVC
 
-`cmake/compilers/{gcc,clang}.cmake` build without `-Werror` and `msvc.cmake` without `/WX`. All three
-were left off until the warning count reached zero, which it now has: every Linux preset builds with
-0 errors and 0 warnings. (The `lto-wrapper: warning: using serial compilation of 4 LTRANS jobs` line
-in the GCC Release log is LTO reporting its job count, not a diagnostic.)
+`cmake/compilers/msvc.cmake` builds with `/W4 /wd4100` but without `/WX`, while GCC and Clang carry
+`-Werror`. That is the one remaining deviation from the kp-mod convention, and it is deliberate:
+**the MSVC build has never been configured or compiled here**, see below, so turning `/WX` on blind
+would hand the next Windows session a tree that may not build.
 
-**`/WX` cannot be verified here** - the MSVC build is unbuilt, see below, so turning it on blind
-would hand the next Windows session a tree that may not compile. **What would settle it:** either
-turn both on and treat the first Windows build as the test, or turn on `-Werror` now and leave `/WX`
-for the Windows session.
+**What would settle it:** build on Windows, clear whatever `/W4` reports, then add `/WX`.
 
 ## q2ded2 is not in the CMake build
 

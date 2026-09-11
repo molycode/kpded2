@@ -4,6 +4,7 @@ target_compile_options(KpdCompileFlags INTERFACE
 	-Wall
 	-Wextra
 	-Wno-unused-parameter
+	-Werror
 )
 
 message(STATUS "Clang ${CMAKE_C_COMPILER_VERSION} compiler flags configured")
