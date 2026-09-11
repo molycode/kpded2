@@ -3514,7 +3514,10 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int			net_drop;
 	int			userinfoCount;
 	int			stringCmdCount;
-	qboolean	move_issued, interpolating;
+	qboolean	move_issued;
+#if !KINGPIN
+	qboolean	interpolating;
+#endif
 	int			lastframe;
 #if !KINGPIN
 	vec3_t		oldorigin;
@@ -3874,9 +3877,9 @@ skipquality:
 			if (move_issued)
 				Com_Printf ("WARNING: Out-of-order stringcmd '%.32s...' from %s\n", LOG_SERVER|LOG_WARNING, s, cl->name);
 
+#if !KINGPIN
 			interpolating = false;
 
-#if !KINGPIN
 			if (sv_interpolated_pmove->intvalue && cl->current_move.elapsed < cl->current_move.msec)
 			{
 				FastVectorCopy (cl->edict->s.origin, oldorigin);

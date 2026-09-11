@@ -1973,10 +1973,7 @@ static void SVC_RemoteCommand (void)
 	}
 	else
 	{
-		qboolean	endRedir;
-
 		remaining[0] = 0;
-		endRedir = true;
 
 		//hack to allow clients to send rcon set commands properly
 		if (!Q_stricmp (Cmd_Argv(2), "set"))
@@ -2992,6 +2989,7 @@ static void Master_Heartbeat (void)
 	}
 }
 
+#if !KINGPIN
 static void SV_RunPmoves (int msec)
 {
 	client_t	*cl;
@@ -3033,6 +3031,7 @@ static void SV_RunPmoves (int msec)
 		}
 	}
 }
+#endif
 
 // MH: activate auto-idle mode if the server is empty
 static void SV_CheckAutoIdle (void)
@@ -3463,6 +3462,7 @@ static void SV_UpdateWindowTitle (cvar_t *cvar, char *old, char *newvalue)
 	}
 }
 
+#if !KINGPIN
 static void _password_changed (cvar_t *var, char *oldvalue, char *newvalue)
 {
 	if (!newvalue[0] || !strcmp (newvalue, "none"))
@@ -3470,6 +3470,7 @@ static void _password_changed (cvar_t *var, char *oldvalue, char *newvalue)
 	else
 		Cvar_FullSet ("needpass", "1", CVAR_SERVERINFO);
 }
+#endif
 
 static void _rcon_buffsize_changed (cvar_t *var, char *oldvalue, char *newvalue)
 {

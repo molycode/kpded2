@@ -2013,10 +2013,6 @@ static void SV_DelStuffCmd_f (void)
 	{
 		if (i == index)
 		{
-			char	*s;
-
-			s = strchr (p, '\n');
-			s++;
 			dst++;
 
 			length = (int)strlen(dst);

@@ -91,11 +91,6 @@ Netchan_Init
 */
 void Netchan_Init (void)
 {
-	int		port;
-
-	// pick a port value that should be nice and random
-	port = (int)(random() * 0xFFFF);
-
 	showpackets = Cvar_Get ("showpackets", "0", 0);
 	showdrop = Cvar_Get ("showdrop", "0", 0);
 

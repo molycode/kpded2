@@ -1345,7 +1345,10 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 {
 	client_frame_t		*frame, *oldframe;
 	int					lastframe, framenum;
-	int					extraDataIndex, extraflags, serverByteIndex;
+	int					extraDataIndex, serverByteIndex;
+#if !KINGPIN
+	int					extraflags;
+#endif
 
 	framenum = sv.randomframe;
 
@@ -1440,7 +1443,11 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	SZ_Write (msg, frame->areabits, frame->areabytes);
 
 	// delta encode the playerstate
+#if KINGPIN
+	SV_WritePlayerstateToClient (oldframe, frame, msg, client);
+#else
 	extraflags = SV_WritePlayerstateToClient (oldframe, frame, msg, client);
+#endif
 
 #if !KINGPIN
 	//HOLY CHRIST
@@ -1635,7 +1642,6 @@ void SV_BuildClientFrame (client_t *client)
 	int						l;
 	int						clientarea, clientcluster;
 	int						leafnum, framenum;
-	int						c_fullsend;
 	const byte				*clientphs;
 	const byte				*bitvector;
 
@@ -1706,8 +1712,6 @@ void SV_BuildClientFrame (client_t *client)
 	frame->num_entities = 0;
 	frame->first_entity = svs.next_client_entities;
 
-	c_fullsend = 0;
-
 #if KINGPIN
 	// MH: don't send any entities if disabled by game DLL
 	if (!(svs.game_features & GMF_CLIENTNOENTS) || !clent->client->noents)
@@ -1777,7 +1781,6 @@ void SV_BuildClientFrame (client_t *client)
 				{	// too many leafs for individual check, go by headnode
 					if (!CM_HeadnodeVisible (ent->headnode, bitvector))
 						continue;
-					c_fullsend++;
 				}
 				else
 				{	// check individual leafs
