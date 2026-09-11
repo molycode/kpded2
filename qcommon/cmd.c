@@ -272,7 +272,7 @@ void Cbuf_Execute (void)
 
 		//Com_DPrintf ("Cbuf_Execute: found %d bytes\n", i);
 
-		if (i >= sizeof(line)-1)
+		if ((size_t)i >= sizeof(line)-1)
 		{
 			Com_Printf ("Cbuf_Execute: overflow of %d truncated\n", LOG_GENERAL, i);
 			memcpy (line, text, sizeof(line)-1);

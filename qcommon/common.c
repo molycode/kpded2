@@ -1197,7 +1197,7 @@ char *MSG_ReadString (sizebuf_t *msg_read)
 			break;
 		string[l] = c;
 		l++;
-	} while (l < sizeof(string)-1);
+	} while ((size_t)l < sizeof(string)-1);
 	
 	string[l] = 0;
 	
@@ -1217,7 +1217,7 @@ char *MSG_ReadStringLine (sizebuf_t *msg_read)
 			break;
 		string[l] = c;
 		l++;
-	} while (l < sizeof(string)-1);
+	} while ((size_t)l < sizeof(string)-1);
 	
 	string[l] = 0;
 	return string;
@@ -2021,7 +2021,7 @@ RESTRICT void * EXPORT Z_TagMallocGame (int size, int tag)
 	b = Z_TagMalloc (size+4, tag);
 
 	memset (b, 0, size);
-	*(int *)(b + size) = 0xFDFEFDFE;
+	*(uint32 *)(b + size) = 0xFDFEFDFE;
 
 	if (tag == TAG_LEVEL)
 		z_level_allocs++;
@@ -2066,7 +2066,7 @@ void EXPORT Z_FreeGame (void *buf)
 		loc = loc->next;
 		if (buf == loc->address)
 		{
-			if (*(int *)((byte *)buf + loc->size) != 0xFDFEFDFE)
+			if (*(uint32 *)((byte *)buf + loc->size) != 0xFDFEFDFE)
 			{
 				Com_Printf ("Memory corruption detected within the Game DLL. Please contact the mod author and inform them that they are not managing dynamically allocated memory correctly.\n", LOG_GENERAL);
 				Com_Error (ERR_DIE, "Z_FreeGame: Game DLL corrupted a memory block of size %d at %p (allocated %u ms ago from code at %p), detected during free at %p", loc->size, loc->address, curtime - loc->time, loc->allocationLocation, retAddr);
@@ -2105,7 +2105,7 @@ void EXPORT Z_FreeTagsGame (int tag)
 	{
 		loc = loc->next;
 
-		if (*(int *)((byte *)loc->address + loc->size) != 0xFDFEFDFE)
+		if (*(uint32 *)((byte *)loc->address + loc->size) != 0xFDFEFDFE)
 		{
 			Com_Printf ("Memory corruption detected within the Game DLL. Please contact the mod author and inform them that they are not managing dynamically allocated memory correctly.\n", LOG_GENERAL);
 			Com_Error (ERR_DIE, "Z_FreeTagsGame: Game DLL corrupted a memory block of size %d at %p (allocated %u ms ago from code at %p)", loc->size, loc->address, curtime - loc->time, loc->allocationLocation);
@@ -3086,7 +3086,7 @@ const char *MakePrintable (const void *subject, size_t numchars)
 			len += 4;
 		}
 
-		if (len >= sizeof(printable)-5)
+		if ((size_t)len >= sizeof(printable)-5)
 			break;
 
 		s++;

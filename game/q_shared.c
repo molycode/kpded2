@@ -1579,7 +1579,7 @@ int Q_vsnprintf (char *buff, size_t len, const char *fmt, va_list va)
 	int ret;
 
 	ret = vsnprintf (buff, len, fmt, va);
-	if (ret > -1 && ret < len)
+	if (ret > -1 && (size_t)ret < len)
 		return ret;
 
 	return -1;

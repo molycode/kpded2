@@ -338,7 +338,7 @@ int	EXPORT SV_SkinIndex(int modelindex, const char *name)
 			if (sv_gamedebug->intvalue >= 3)
 				Sys_DebugBreak();
 		}
-		if (len >= sizeof(lwrname))
+		if ((size_t)len >= sizeof(lwrname))
 			return 0;
 	}
 	strcpy(lwrname, name);

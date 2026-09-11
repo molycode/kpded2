@@ -2901,7 +2901,7 @@ void SV_WriteClientDemoServerData (client_t *cl)
 	{
 		if (sv.configstrings[i][0])
 		{
-			if (buf.cursize + strlen (sv.configstrings[i]) + 32 > buf.maxsize)
+			if (buf.cursize + strlen (sv.configstrings[i]) + 32 > (size_t)buf.maxsize)
 			{	// write it out
 				len = LittleLong (buf.cursize);
 				fwrite (&len, 4, 1, cl->demofile);

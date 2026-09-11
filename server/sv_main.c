@@ -608,7 +608,7 @@ static const char *SV_StatusString (void)
 						cl->edict->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
 
 				playerLength = (int)strlen(player);
-				if (statusLength + playerLength >= sizeof(status) )
+				if ((size_t)(statusLength + playerLength) >= sizeof(status) )
 					break;		// can't hold any more
 				strcpy (status + statusLength, player);
 				statusLength += playerLength;
@@ -1069,7 +1069,7 @@ static void SV_UpdateUserinfo (client_t *cl, qboolean notifyGame)
 		strcpy (cl->name, val);
 
 		// mask off high bit
-		for (i=0 ; i<sizeof(cl->name)-1; i++)
+		for (i=0 ; (size_t)i<sizeof(cl->name)-1; i++)
 			cl->name[i] &= 127;
 	}
 	else
@@ -2436,7 +2436,7 @@ static void SV_GamespyPacket(void)
 				if (g_features->intvalue & GMF_CLIENTTEAM)
 					len += Com_sprintf(buf + len, sizeof(buf) - len, "\\team_%d\\%d", count, svs.clients[i].edict->client->team);
 				count++;
-				if (len > sizeof(buf) - 140)
+				if ((size_t)len > sizeof(buf) - 140)
 					break;
 			}
 	}

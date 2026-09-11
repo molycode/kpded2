@@ -65,7 +65,7 @@ static void *CacheDownload(void *arg)
 	do
 	{
 		char buf[0x4000];
-		int r = read(d->fd, buf, c < sizeof(buf) ? c : sizeof(buf));
+		int r = read(d->fd, buf, (size_t)c < sizeof(buf) ? (size_t)c : sizeof(buf));
 		if (r <= 0)
 			break;
 		c -= r;
@@ -597,31 +597,31 @@ static void SV_New_f (void)
 			char	aliasJunk[10][8];
 			char	randomIP[10][64];
 
-			for (i = 0; i < sizeof(sv_client->reconnect_var)-1; i++)
+			for (i = 0; (size_t)i < sizeof(sv_client->reconnect_var)-1; i++)
 			{
 				sv_client->reconnect_var[i] = junkChars[(int)(random() * (sizeof(junkChars)-1))];
 			}
 
-			for (i = 0; i < sizeof(sv_client->reconnect_var)-1; i++)
+			for (i = 0; (size_t)i < sizeof(sv_client->reconnect_var)-1; i++)
 				sv_client->reconnect_value[i] = junkChars[(int)(random() * (sizeof(junkChars)-1))];
 
 			for (i = 0; i < 4; i++)
 			{
-				for (j = 0; j < sizeof(aliasSet[0])-1; j++)
+				for (j = 0; (size_t)j < sizeof(aliasSet[0])-1; j++)
 					aliasSet[i][j] = junkChars[(int)(random() * (sizeof(junkChars)-1))];
 				aliasSet[i][j] = 0;
 			}
 
 			for (i = 0; i < 4; i++)
 			{
-				for (j = 0; j < sizeof(aliasConnect[0])-1; j++)
+				for (j = 0; (size_t)j < sizeof(aliasConnect[0])-1; j++)
 					aliasConnect[i][j] = junkChars[(int)(random() * (sizeof(junkChars)-1))];
 				aliasConnect[i][j] = 0;
 			}
 
 			for (i = 0; i < 10; i++)
 			{
-				for (j = 0; j < sizeof(aliasJunk[0])-1; j++)
+				for (j = 0; (size_t)j < sizeof(aliasJunk[0])-1; j++)
 					aliasJunk[i][j] = junkChars[(int)(random() * (sizeof(junkChars)-1))];
 
 				aliasJunk[i][j] = 0;

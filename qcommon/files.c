@@ -1073,7 +1073,7 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 		if (fseek (packhandle, header.dirofs, SEEK_SET))
 			Com_Error (ERR_FATAL, "FS_LoadPackFile: fseek() to offset %u in %s failed. Pak file is possibly corrupt.", header.dirofs, packfile);
 
-		if ((int)fread (info, 1, header.dirlen, packhandle) != header.dirlen)
+		if (fread (info, 1, header.dirlen, packhandle) != header.dirlen)
 			Com_Error (ERR_FATAL, "FS_LoadPackFile: Error reading packfile directory from %s (failed to read %u bytes at %u). Pak file is possibly corrupt.", packfile, header.dirofs, header.dirlen);
 
 		pack = Z_TagMalloc (sizeof (pack_t), TAGMALLOC_FSLOADPAK);
