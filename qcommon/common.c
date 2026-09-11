@@ -2148,13 +2148,13 @@ void *Z_Realloc (void *ptr, int size)
 	if (size < 0)
 		Com_Error (ERR_DIE, "Z_Realloc: Illegal allocation size of %d bytes from %p", size,
 #if defined _WIN32
-		_ReturnAddress (),
+		_ReturnAddress ()
 #elif defined LINUX
-		__builtin_return_address (0), 
+		__builtin_return_address (0)
 #else
-		NULL,
+		NULL
 #endif
-		0);
+		);
 
 	size = size + sizeof(zhead_t);
 	z = realloc(z, size);

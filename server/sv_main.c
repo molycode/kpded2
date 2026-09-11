@@ -3525,7 +3525,8 @@ static void _geoipdb_changed (cvar_t *var, char *oldvalue, char *newvalue)
 			int a;
 			for (c = a = 0; a < mmdb.file_size; a += 4096)
 				c += mmdb.file_content[a];
-			Com_Printf("GeoIP database loaded\n", LOG_SERVER|LOG_NOTICE, c);
+			(void)c;
+			Com_Printf("GeoIP database loaded\n", LOG_SERVER|LOG_NOTICE);
 		}
 		else
 			Com_Printf("GeoIP database failed to load (%d)\n", LOG_SERVER|LOG_WARNING, status);

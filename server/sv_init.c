@@ -675,7 +675,7 @@ static void SV_SpawnServer (const char *server, const char *spawnpoint, server_s
 #if KINGPIN
 		// MH: workaround for a bug that goes back to the original Kingpin SDK!
 		char *p = entities;
-		while (p = strstr(p, "\"weapon_barmachinegun\""))
+		while ((p = strstr(p, "\"weapon_barmachinegun\"")) != NULL)
 			memcpy(p, "\"weapon_flamethrower\" ", 22);
 #endif
 		ge->SpawnEntities ( sv.name, entities, spawnpoint );

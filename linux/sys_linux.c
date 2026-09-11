@@ -124,8 +124,8 @@ void Sys_Printf (char *fmt, ...)
 	char		text[1024];
 	unsigned char		*p;
 
-    if (nostdout && nostdout->intvalue)
-        return;
+	if (nostdout && nostdout->intvalue)
+		return;
 
 	va_start (argptr,fmt);
 	vsprintf (text,fmt,argptr);
@@ -752,6 +752,7 @@ static void *ThreadPriorityWrapper(void *param)
 	setpriority(PRIO_PROCESS, tid, p - tp->priority);
 	tp->func(tp->param);
 	free(param);
+	return NULL;
 }
 
 intptr_t Sys_StartThread(void *(*func)(void*), void *param, int priority)

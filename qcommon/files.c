@@ -1739,7 +1739,7 @@ static int FixFileNames(const char *path)
 	if (!d)
 		return 0;
 
-	while (de = readdir(d))
+	while ((de = readdir(d)) != NULL)
 	{
 		char *p;
 		for (p = de->d_name; *p; p++)

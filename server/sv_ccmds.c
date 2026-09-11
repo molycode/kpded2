@@ -2328,7 +2328,7 @@ loop:
 			// MH: client demo recordings
 			case 4:
 				if (cl->demofile)
-					Com_Printf ("%2i %-15s %-27s %8d\n", LOG_GENERAL, i, cl->name, cl->demoname, ftell(cl->demofile));
+					Com_Printf ("%2i %-15s %-27s %8ld\n", LOG_GENERAL, i, cl->name, cl->demoname, ftell(cl->demofile));
 				continue;
 			default:
 				break;
