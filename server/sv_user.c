@@ -2935,12 +2935,12 @@ static ucmd_t ucmds[] =
 //metavars
 const char *SV_GetClientID (void)
 {
-	static char	idBuff[4];
+	static char	idBuff[12];
 
 	if (!sv_client)
 		return "";
 
-	sprintf (idBuff, "%d", (int)(sv_client - svs.clients));
+	Com_sprintf (idBuff, sizeof(idBuff), "%d", (int)(sv_client - svs.clients));
 	return idBuff;
 }
 
