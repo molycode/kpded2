@@ -1320,11 +1320,9 @@ static void Cmd_Expand_Args (char *src, char *dst, int dstavail)
 
 		next = strchr (src, '$');
 
-		count = next - src;
-
 		if (!next)
 		{
-			if (strlen(src) >= dstavail)
+			if ((int)strlen(src) >= dstavail)
 			{
 				Com_Printf ("Error expanding alias: Result too long\n", LOG_GENERAL);
 				return;
@@ -1333,10 +1331,11 @@ static void Cmd_Expand_Args (char *src, char *dst, int dstavail)
 			return;
 		}
 
+		count = next - src;
+
 		//Insert what found before the $
-		if (count >= dstavail + 1)
+		if (count >= dstavail)
 		{
-			//include space for $ if not to be replaced here
 			Com_Printf ("Error expanding alias: Result too long\n", LOG_GENERAL);
 			return;
 		}
@@ -1386,6 +1385,11 @@ static void Cmd_Expand_Args (char *src, char *dst, int dstavail)
 		else
 		{
 			//Some other cvar, put the $ again
+			if (dstavail < 2)
+			{
+				Com_Printf ("Error expanding alias: Result too long\n", LOG_GENERAL);
+				return;
+			}
 			*dst++ = '$';
 			*dst = 0;
 			dstavail--;
