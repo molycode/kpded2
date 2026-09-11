@@ -7,7 +7,7 @@ was found in. Each item states what is known, what is only predicted, and what w
 
 `cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
 `-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: a GCC 16 Release build still emits 54 warnings, so turning them into errors today would
+temporary: a GCC 16 Release build still emits 55 warnings, so turning them into errors today would
 simply make the tree unbuildable.
 
 All four Linux presets build with **0 errors**. Measured at `5c3aa5c`:
@@ -25,7 +25,7 @@ What is left on GCC:
 |---|---|---|
 | 33 | `-Wsign-compare` | mostly loop counters against `.intvalue` and sizes; each needs a look at whether the signed side can go negative |
 | 10 | `-Wpointer-sign` | `char *` against `byte *` at the network and filesystem boundaries |
-| 9 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
+| 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves`, both `static` and both unreferenced in this configuration |
 
 None of these is known to be a bug. They are volume work that wants a careful pass per warning, not a
