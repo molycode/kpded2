@@ -7,31 +7,39 @@ was found in. Each item states what is known, what is only predicted, and what w
 
 `cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
 `-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: every Linux preset still emits more than fifty warnings, so turning them into errors
-today would simply make the tree unbuildable.
+temporary: every Linux preset still emits around twenty warnings, so turning them into errors today
+would simply make the tree unbuildable.
 
 All four Linux presets build with **0 errors**, from a clean build of each:
 
 | preset | warnings |
 |---|---|
-| `linux-gcc_16-debug` | 57 |
-| `linux-gcc_16-release` | 55 |
-| `linux-clang_22-debug` | 53 |
-| `linux-clang_22-release` | 53 |
+| `linux-gcc_16-debug` | 24 |
+| `linux-gcc_16-release` | 22 |
+| `linux-clang_22-debug` | 21 |
+| `linux-clang_22-release` | 21 |
 
 What is left, Release on each compiler:
 
 | GCC | Clang | warning | character |
 |---|---|---|---|
-| 33 | 32 | `-Wsign-compare` | mostly loop counters against `.intvalue` and sizes; each needs a look at whether the signed side can go negative |
 | 10 | 10 | `-Wpointer-sign` | `char *` against `byte *` at the network and filesystem boundaries |
 | 8 | 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
 | 2 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves` in `server/sv_main.c`, both `static` and both unreferenced in this configuration |
 | 1 | 1 | `-Wunused-variable` | `state` in `qcommon/common.c:496` |
 
-GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 55 is not a warning
+GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 22 is not a warning
 at all - LTO's "using serial compilation of 4 LTRANS jobs" carries the word and is counted by a
 `warning:` grep.
+
+`-Wsign-compare` is **done** - 33 of them, cleared across six commits. Twenty were a signed loop
+counter or `strlen` result against a `sizeof` and took a cast. Six were a `uint32` against an int
+that cannot go negative and are now explicit; the GCC Release `.text` was byte-identical afterwards.
+The other seven were load-bearing and turned up four real defects: an alias-expansion overflow, an
+rcon redirect that could run past `sv_outputbuf`, an unvalidated MDX header, and two packetdup cvars
+that were never floored at zero. **The lesson for the classes below: do not cast to silence. In
+`SV_PacketDup_f` the unsigned conversion is what rejects a client asking for -1, and casting the
+other way would have introduced the bug the warning was protecting against.**
 
 What is left is volume work that wants a careful pass per warning, not a blanket cast. None of it is
 known to be a bug. Once the count is zero on both compilers in both configurations, restore
