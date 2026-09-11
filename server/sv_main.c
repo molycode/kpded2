@@ -1807,7 +1807,7 @@ gotnewcl:
 
 	// MH: set default packetdup
 	newcl->netchan.packetdup = sv_packetdup->intvalue;
-	if (newcl->netchan.packetdup > sv_max_packetdup->intvalue)
+	if (newcl->netchan.packetdup > (unsigned)sv_max_packetdup->intvalue)
 		newcl->netchan.packetdup = sv_max_packetdup->intvalue;
 
 	// MH: disable idle mode
@@ -3482,6 +3482,14 @@ static void _rcon_buffsize_changed (cvar_t *var, char *oldvalue, char *newvalue)
 	}
 }
 
+static void _packetdup_changed (cvar_t *var, char *oldvalue, char *newvalue)
+{
+	if (var->intvalue < 0)
+	{
+		Cvar_Set (var->name, "0");
+	}
+}
+
 // MH: check that idle mode can be enabled
 static void _g_idle_changed (cvar_t *var, char *oldvalue, char *newvalue)
 {
@@ -3938,10 +3946,14 @@ void SV_Init (void)
 #endif
 
 	sv_max_packetdup = Cvar_Get ("sv_max_packetdup", "1", 0); // MH: changed default from 0 to 1
+	sv_max_packetdup->changed = _packetdup_changed;
+	_packetdup_changed (sv_max_packetdup, sv_max_packetdup->string, sv_max_packetdup->string);
 	sv_max_packetdup->help = "Maximum number of duplicate packets a client can request for when they have packet loss. Each duplicate causes the client to consume more bandwidth. Default 1.\n";
 
 	// MH: default packetdup
 	sv_packetdup = Cvar_Get ("sv_packetdup", "0", 0);
+	sv_packetdup->changed = _packetdup_changed;
+	_packetdup_changed (sv_packetdup, sv_packetdup->string, sv_packetdup->string);
 	sv_packetdup->help = "Default number of duplicate packets sent to a client suffering packet loss, if they have rate set to at least 15000. Default 0.\n";
 
 	sv_redirect_address = Cvar_Get ("sv_redirect_address", "", 0);
