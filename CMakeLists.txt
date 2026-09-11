@@ -8,11 +8,9 @@ if(PROJECT_IS_TOP_LEVEL)
 	set(CMAKE_C_STANDARD_REQUIRED ON)
 	set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
-	# Replace CMake's per-config defaults rather than appending to them, so exactly one optimisation
-	# level and one -g reach the compiler - -g comes from cmake/compilers/ for both configurations.
-	# -O3 rather than upstream's -O2, to stay level with kp-mod; the float flags further down are
-	# what actually keep results in step with the client.
-	set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+	# Release takes CMake's -O3 -DNDEBUG as-is. Debug's default -g is cleared because
+	# cmake/compilers/ already adds it for both configurations, and Release needs it: the stripped
+	# ship/ copy only symbolises against the unstripped binary beside it.
 	set(CMAKE_C_FLAGS_DEBUG "")
 endif()
 
