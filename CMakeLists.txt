@@ -7,6 +7,13 @@ if(PROJECT_IS_TOP_LEVEL)
 	set(CMAKE_C_STANDARD 11)
 	set(CMAKE_C_STANDARD_REQUIRED ON)
 	set(CMAKE_CONFIGURATION_TYPES Debug Release)
+
+	# Replace CMake's per-config defaults rather than appending to them, so exactly one optimisation
+	# level and one -g reach the compiler - -g comes from cmake/compilers/ for both configurations.
+	# -O3 rather than the Makefile's -O2, to stay level with kp-mod; the float flags further down are
+	# what actually keep results in step with the client.
+	set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+	set(CMAKE_C_FLAGS_DEBUG "")
 endif()
 
 if(NOT COMMAND KpdApplyCompileFlags)
@@ -113,10 +120,8 @@ if(NOT MSVC)
 		set(KPD_LTO_FLAG -flto)
 	endif()
 
-	# -O2 rather than CMake's -O3, matching the Makefile: a server whose float results drift from the
-	# client's produces prediction misses.
-	target_compile_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
-	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
+	target_compile_options(Kpded2 PRIVATE $<$<CONFIG:Release>:${KPD_LTO_FLAG}>)
+	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:${KPD_LTO_FLAG}>)
 endif()
 
 KpdApplyCompileFlags(Kpded2)
