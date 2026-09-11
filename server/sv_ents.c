@@ -1363,9 +1363,9 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	frame = &client->frames[framenum & UPDATE_MASK];
 
 	// MH: client demo needs to start with a non-delta frame
-	if (client->demofile && client->demostart > client->lastframe)
+	if (client->demofile && client->lastframe >= 0 && client->demostart > (unsigned)client->lastframe)
 	{
-		if (client->demostart > framenum)
+		if (client->demostart > (unsigned)framenum)
 			client->demostart = framenum;
 		oldframe = NULL;
 		lastframe = -1;
