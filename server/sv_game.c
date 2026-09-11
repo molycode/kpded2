@@ -92,9 +92,17 @@ void EXPORT MDX_GetObjectBounds(const char *mdx_filename, model_part_t *model_pa
 			int *NumObjectBounds = ge->GetNumObjectBounds();
 			void **ObjectBoundsPointer = ge->GetObjectBoundsPointer();
 			mdx_head_t head;
-			for (j=0; j<sizeof(head)/4; j++)
+
+			if (size < (int)sizeof(head))
+			{
+				FS_FreeFile(data);
+				Com_Printf ("ERROR: MDX_GetObjectBounds: Invalid MDX file \"%s\"\n", LOG_SERVER|LOG_ERROR, mdx_filename);
+				return;
+			}
+
+			for (j=0; (size_t)j<sizeof(head)/4; j++)
 				((uint32*)&head)[j] = LittleLong(((int32*)data)[j]);
-			if (head.magic != 0x58504449 || head.numSubObjects > MAX_MODELPART_OBJECTS || head.offsetBBoxFrames + head.numSubObjects * head.numFrames * 24 > size)
+			if (head.magic != 0x58504449 || head.numSubObjects < 0 || head.numSubObjects > MAX_MODELPART_OBJECTS || head.numFrames < 0 || head.offsetBBoxFrames < 0 || (int64)head.offsetBBoxFrames + (int64)head.numSubObjects * head.numFrames * 24 > size)
 			{
 				FS_FreeFile(data);
 				Com_Printf ("ERROR: MDX_GetObjectBounds: Invalid MDX file \"%s\"\n", LOG_SERVER|LOG_ERROR, mdx_filename);
