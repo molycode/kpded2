@@ -481,13 +481,16 @@ static void SV_SpawnServer (const char *server, const char *spawnpoint, server_s
 #endif
 		cmd = Cmd_MacroExpandString("$sv_beginmapcmd");
 		if (cmd)
-		{
-			Cbuf_AddText (cmd);
-			Cbuf_AddText ("\n");
-			Cbuf_Execute ();
-		}
+			Cbuf_ExecuteScoped (cmd);
 		else
 			Com_Printf ("WARNING: Error expanding $sv_beginmapcmd, ignored.\n", LOG_SERVER|LOG_WARNING);
+
+		// the hook may have shut the server down under us
+		if (!svs.initialized)
+		{
+			Com_Printf ("WARNING: $sv_beginmapcmd stopped the server, abandoning map load.\n", LOG_SERVER|LOG_WARNING);
+			return;
+		}
 #ifndef DEDICATED_ONLY
 	}
 #endif
@@ -740,13 +743,16 @@ skipsky:
 #endif
 		cmd = Cmd_MacroExpandString("$sv_postbeginmapcmd");
 		if (cmd)
-		{
-			Cbuf_AddText (cmd);
-			Cbuf_AddText ("\n");
-			Cbuf_Execute ();
-		}
+			Cbuf_ExecuteScoped (cmd);
 		else
 			Com_Printf ("WARNING: Error expanding $sv_postbeginmapcmd, ignored.\n", LOG_SERVER|LOG_WARNING);
+
+		// the hook may have shut the server down under us
+		if (!svs.initialized)
+		{
+			Com_Printf ("WARNING: $sv_postbeginmapcmd stopped the server, abandoning map load.\n", LOG_SERVER|LOG_WARNING);
+			return;
+		}
 #ifndef DEDICATED_ONLY
 	}
 #endif
@@ -922,11 +928,7 @@ void SV_Map (qboolean attractloop, const char *levelstring, qboolean loadgame)
 	{
 		cmd = Cmd_MacroExpandString("$sv_endmapcmd");
 		if (cmd)
-		{
-			Cbuf_AddText (cmd);
-			Cbuf_AddText ("\n");
-			Cbuf_Execute ();
-		}
+			Cbuf_ExecuteScoped (cmd);
 		else
 			Com_Printf ("WARNING: Error expanding $sv_endmapcmd, ignored.\n", LOG_SERVER|LOG_WARNING);
 	}

@@ -205,6 +205,38 @@ Cbuf_InsertFromDefer
 
 /*
 ============
+Cbuf_ExecuteScoped
+
+Runs text now, leaving commands that were already queued for whoever is
+draining the buffer. Cbuf_Execute drains everything, so a nested call runs
+the caller's own pending commands at whatever point it was reached from -
+SV_SpawnServer is not re-entrant and a queued killserver frees svs.clients
+out from under it.
+============
+*/
+void Cbuf_ExecuteScoped (const char *text)
+{
+	char	pending[COMMAND_BUFFER_SIZE+1];
+	int		pendinglen;
+
+	pendinglen = cmd_text.cursize;
+	if (pendinglen)
+	{
+		memcpy (pending, cmd_text_buf, pendinglen);
+		pending[pendinglen] = 0;
+		SZ_Clear (&cmd_text);
+	}
+
+	Cbuf_AddText (text);
+	Cbuf_AddText ("\n");
+	Cbuf_Execute ();
+
+	if (pendinglen)
+		Cbuf_InsertText (pending);
+}
+
+/*
+============
 Cbuf_ExecuteText
 ============
 */

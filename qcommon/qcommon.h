@@ -619,6 +619,9 @@ void EXPORT Cbuf_AddText (const char *text);
 // the text is added to the end of the command buffer.
 
 void Cbuf_InsertText (const char *text);
+
+void Cbuf_ExecuteScoped (const char *text);
+// runs text immediately without draining commands that are already queued
 // when a command wants to issue other commands immediately, the text is
 // inserted at the beginning of the buffer, before any remaining unexecuted
 // commands.
