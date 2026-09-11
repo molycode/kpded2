@@ -148,9 +148,9 @@ typedef uint64_t uint64;
 #define Q_stricmp strcasecmp
 #define Q_strncasecmp strncasecmp
 #if KINGPIN
-// MH: compatibility with GCC 2.7.2
-#define EXPORT __attribute__((callee_pop_aggregate_return(0)))
-#define IMPORT __attribute__((callee_pop_aggregate_return(0)))
+// i386 aggregate returns: the 1999 engine and game libraries pop the hidden pointer in the callee.
+#define EXPORT __attribute__((callee_pop_aggregate_return(1)))
+#define IMPORT __attribute__((callee_pop_aggregate_return(1)))
 #else
 #define EXPORT
 #define IMPORT
