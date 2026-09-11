@@ -2714,7 +2714,7 @@ void Qcommon_Init (int argc, char **argv)
 #else
 	Com_Printf("====== Quake2 Initialized ======\n", LOG_GENERAL);
 #endif
-	Com_Printf ("kpded " KPBUILD " (based on R1Q2 b" BUILD "), compiled " __DATE__ ".\n"
+	Com_Printf ("kpded " KPD_FORK_STRING " (based on R1Q2 b" BUILD "), compiled " __DATE__ ".\n"
 				BUILDSTRING " " CPUSTRING " (%s)\n\n", LOG_GENERAL, binary_name);
 
 #ifndef DEDICATED_ONLY

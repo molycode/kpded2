@@ -122,6 +122,19 @@ if(NOT MSVC)
 	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:${KPD_LTO_FLAG}>)
 endif()
 
+# Stamp the git revision into the binary. A custom target rather than a configure-time variable, so
+# a build after a new commit records that commit instead of whatever configure last saw.
+set(KPD_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/kpd_version.h")
+add_custom_target(KpdVersion ALL
+	COMMAND ${CMAKE_COMMAND}
+		-DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+		-DOUT_FILE=${KPD_VERSION_HEADER}
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/kpd_version.cmake
+	BYPRODUCTS ${KPD_VERSION_HEADER}
+	COMMENT "Recording the git revision")
+add_dependencies(Kpded2 KpdVersion)
+target_include_directories(Kpded2 PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 KpdApplyCompileFlags(Kpded2)
 
 # minizip and zlib's crc, vendored into qcommon/ rather than kept apart, so the suppression has to be
