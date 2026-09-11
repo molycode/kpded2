@@ -108,8 +108,16 @@ if(NOT MSVC)
 
 	# -O2 rather than CMake's -O3, matching the Makefile: a server whose float results drift from the
 	# client's produces prediction misses.
-	target_compile_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;-flto>)
-	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;-flto>)
+
+	# GCC runs LTRANS serially unless given a job count, and Clang has no such spelling.
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		set(KPD_LTO_FLAG -flto=auto)
+	else()
+		set(KPD_LTO_FLAG -flto)
+	endif()
+
+	target_compile_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
+	target_link_options(Kpded2 PRIVATE $<$<CONFIG:Release>:-O2;${KPD_LTO_FLAG}>)
 endif()
 
 KpdApplyCompileFlags(Kpded2)
