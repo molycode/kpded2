@@ -3,52 +3,52 @@
 Work that is understood but parked, because it cannot be finished or verified in the environment it
 was found in. Each item states what is known, what is only predicted, and what would settle it.
 
-## Clear the remaining warnings, then turn on -Werror
+## Turn on -Werror
 
-`cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
-`-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: every Linux preset still emits eleven or more warnings, so turning them into errors today
-would simply make the tree unbuildable.
+**The tree is warning-free.** A clean build of every Linux preset - `linux-gcc_16-{debug,release}`
+and `linux-clang_22-{debug,release}` - reports 0 errors and 0 warnings. The one line left in the GCC
+Release log is `lto-wrapper: warning: using serial compilation of 4 LTRANS jobs`, which is LTO
+telling you about its job count, not a diagnostic.
 
-All four Linux presets build with **0 errors**, from a clean build of each:
+That clears the condition this section used to describe. What remains is the switch itself:
+`-Werror` in `cmake/compilers/{gcc,clang}.cmake` and `/WX` in `msvc.cmake`, all three left off
+deliberately while the count came down from 57/55/1382. **`/WX` cannot be verified here** - the MSVC
+build is unbuilt (see below), and turning it on blind would hand the next Windows session a tree that
+may not compile. Either turn both on and treat the first Windows build as the test, or turn on
+`-Werror` now and `/WX` in the Windows session.
 
-| preset | warnings |
-|---|---|
-| `linux-gcc_16-debug` | 14 |
-| `linux-gcc_16-release` | 12 |
-| `linux-clang_22-debug` | 11 |
-| `linux-clang_22-release` | 11 |
+What the cleanup found, all fixed and each in its own commit: an alias-expansion stack overflow, an
+rcon redirect that ran past `sv_outputbuf`, an unvalidated MDX header, two packetdup cvars never
+floored at zero, a dropped `state &&` guard in `Com_Error`'s auto-restart, and a stack smash from a
+long filename in the game directory. Four of those were reproduced against a running server.
 
-What is left, Release on each compiler:
+**The rule the passes established: never cast or delete to silence a warning.** In `SV_PacketDup_f`
+the implicit unsigned conversion *is* the check that rejects a client's `packetdup -1`; casting the
+other way would have introduced the bug it prevents. In `Com_Error` the unused variable was the
+surviving half of a guard somebody deleted by accident. Read what the warning is pointing at before
+deciding it is noise.
 
-| GCC | Clang | warning | character |
-|---|---|---|---|
-| 8 | 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
-| 2 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves` in `server/sv_main.c`, both `static` and both unreferenced in this configuration |
-| 1 | 1 | `-Wunused-variable` | `state` in `qcommon/common.c:496` |
+## killserver crashes the dedicated server
 
-GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 12 is not a warning
-at all - LTO's "using serial compilation of 4 LTRANS jobs" carries the word and is counted by a
-`warning:` grep.
+Not found by a warning, and not fixed - noticed while testing the above, and present on `3117d48`
+as well, so it is not something this work introduced.
 
-`-Wpointer-sign` is **done** - all 10, in `4516e7a`. Five of them were one bad signature: `gsseckey`
-took `byte *` and called `strlen` on it while its only caller passes `char *`. It is `char *` now.
-Verified by disassembling both builds and comparing per function with addresses normalised - of 601
-symbols exactly one differs, `SV_GamespyPacket`, where `gsseckey` inlines - and by three Gamespy
-`\secure\` challenges returning identical `\validate\` keys from a running server.
+`killserver` on its own segfaults. Minimal repro, from a staged game directory:
 
-`-Wsign-compare` is **done** - 33 of them, cleared across six commits. Twenty were a signed loop
-counter or `strlen` result against a `sizeof` and took a cast. Six were a `uint32` against an int
-that cannot go negative and are now explicit; the GCC Release `.text` was byte-identical afterwards.
-The other seven were load-bearing and turned up four real defects: an alias-expansion overflow, an
-rcon redirect that could run past `sv_outputbuf`, an unvalidated MDX header, and two packetdup cvars
-that were never floored at zero. **The lesson for the classes below: do not cast to silence. In
-`SV_PacketDup_f` the unsigned conversion is what rejects a client asking for -1, and casting the
-other way would have introduced the bug the warning was protecting against.**
+```
+echo killserver > main/kill.cfg
+./kpded2 +set dedicated 1 +set public 0 +map kpdm1 +exec kill.cfg
+```
 
-What is left is volume work that wants a careful pass per warning, not a blanket cast. None of it is
-known to be a bug. Once the count is zero on both compilers in both configurations, restore
-`-Werror` to both GCC and Clang and `/WX` to MSVC, and this section goes away.
+The core lands in `SV_SpawnServer` at `server/sv_init.c:559`, `svs.clients[i].state == cs_spawned`,
+reached from `SV_Map` <- `SV_GameMap_f` <- `SV_Map_f` <- `Cbuf_Execute`.
+
+**What it looks like:** `svs.clients` is allocated in exactly one place, `SV_InitGame`
+(`sv_init.c:828`), and `SV_Shutdown` releases it. `SV_Map` only calls `SV_InitGame` again when
+`sv.state == ss_dead`, so if `killserver` leaves `sv.state` set to anything else the next `map`
+walks a freed `svs.clients`. **What would settle it:** check what `SV_Shutdown` does to `sv.state`
+and to `svs.clients` against what `SV_Map` tests, on a debug build where the pointer can be read
+back after the shutdown.
 
 ## q2ded2 is not in the CMake build
 
