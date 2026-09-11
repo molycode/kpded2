@@ -26,12 +26,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define NPROFILE 1
 #endif
 
+// Com_Printf reports both BUILD and KPBUILD unconditionally, so build.h cannot sit behind NDEBUG
+// and a debug build must not redefine BUILD to something that is not the R1Q2 build number.
+#include "../build.h"
+
 #ifdef NDEBUG
-	#include "../build.h"
 	#define	VERSION		KPBUILD
 #else
-	#define BUILD "DEBUG BUILD"
-	#define	VERSION		BUILD
+	#define	VERSION		"DEBUG BUILD " KPBUILD
 #endif
 
 #include "../game/q_shared.h"

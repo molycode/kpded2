@@ -709,6 +709,7 @@ void SV_ClearMessageList (client_t *client);
 //
 void SV_Nextserver (void);
 void SV_ExecuteClientMessage (client_t *cl);
+int SV_CountPlayers (void);
 
 // MH: close a download
 void SV_CloseDownload(client_t *cl);
