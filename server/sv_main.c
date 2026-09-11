@@ -2305,10 +2305,11 @@ byte gsvalfunc(int reg)
 	return(0);
 }
 
-byte *gsseckey(byte *dst, byte *src, byte *key)
+char *gsseckey(char *dst, char *src, char *key)
 {
 	int    i, size, keysz;
-	byte   enctmp[256], tmp[66], x, y, z, a, b, *p;
+	byte   enctmp[256], tmp[66], x, y, z, a, b;
+	char   *p;
 
 	size = strlen(src);
 	if ((size < 1) || (size > 65)) {

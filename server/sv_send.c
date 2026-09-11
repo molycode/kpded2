@@ -269,7 +269,7 @@ static void SV_AddMessageSingle (client_t *cl, qboolean reliable)
 	if (cl->nodata && !reliable)
 		return;
 
-	data = MSG_GetData();
+	data = (char *)MSG_GetData();
 	if (data[0] == svc_layout)
 	{
 		// MH: check layout messages aren't bigger than the client can handle
@@ -1297,7 +1297,7 @@ doneframe:
 					}
 				}
 				// MH: do sounds in the same pass, including svc_muzzleflash (gunshot sound) and stuffed "play" messages
-				else if (message->data[0] == svc_sound || message->data[0] == svc_muzzleflash || (message->data[0] == svc_stufftext && !Q_strncasecmp(message->data + 1, "play ", 5)))
+				else if (message->data[0] == svc_sound || message->data[0] == svc_muzzleflash || (message->data[0] == svc_stufftext && !Q_strncasecmp((char *)message->data + 1, "play ", 5)))
 				{
 				}
 #if KINGPIN

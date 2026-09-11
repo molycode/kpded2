@@ -73,14 +73,14 @@ static void *CacheDownload(void *arg)
 		{
 			if (!zs.next_in)
 			{
-				zs.next_in = buf;
+				zs.next_in = (Bytef *)buf;
 				zs.avail_in = 1024;
 				deflate(&zs, Z_PARTIAL_FLUSH);
 				zs.avail_in += r - 1024;
 			}
 			else
 			{
-				zs.next_in = buf;
+				zs.next_in = (Bytef *)buf;
 				zs.avail_in = r;
 			}
 			if ((r = deflate(&zs, 0)) || !zs.avail_out)

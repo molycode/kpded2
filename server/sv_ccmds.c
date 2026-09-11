@@ -2860,7 +2860,7 @@ void SV_WriteClientDemoMessage (client_t *client, int length, const byte *data)
 // MH: write serverdata to client demo
 void SV_WriteClientDemoServerData (client_t *cl)
 {
-	char	buf_data[1390];
+	byte	buf_data[1390];
 	sizebuf_t	buf;
 	int		i;
 	int		len;
