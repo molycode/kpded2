@@ -7,52 +7,40 @@ was found in. Each item states what is known, what is only predicted, and what w
 
 `cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
 `-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: a GCC 16 Release build still emits 55 warnings, so turning them into errors today would
-simply make the tree unbuildable.
+temporary: every Linux preset still emits 55 warnings or more, so turning them into errors today
+would simply make the tree unbuildable.
 
-All four Linux presets build with **0 errors**. Measured at `5c3aa5c`:
+All four Linux presets build with **0 errors**, from a clean build of each:
 
 | preset | warnings |
 |---|---|
-| `linux-gcc-debug` | 57 |
-| `linux-gcc-release` | 55 |
-| `linux-clang-debug` | 1382 |
-| `linux-clang-release` | 1382 |
+| `linux-gcc_16-debug` | 57 |
+| `linux-gcc_16-release` | 55 |
+| `linux-clang_22-debug` | 55 |
+| `linux-clang_22-release` | 55 |
 
-What is left on GCC:
+What is left, Release on each compiler:
 
-| count | warning | character |
-|---|---|---|
-| 33 | `-Wsign-compare` | mostly loop counters against `.intvalue` and sizes; each needs a look at whether the signed side can go negative |
-| 10 | `-Wpointer-sign` | `char *` against `byte *` at the network and filesystem boundaries |
-| 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
-| 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves`, both `static` and both unreferenced in this configuration |
+| GCC | Clang | warning | character |
+|---|---|---|---|
+| 33 | 32 | `-Wsign-compare` | mostly loop counters against `.intvalue` and sizes; each needs a look at whether the signed side can go negative |
+| 10 | 10 | `-Wpointer-sign` | `char *` against `byte *` at the network and filesystem boundaries |
+| 8 | 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
+| 2 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves` in `server/sv_main.c`, both `static` and both unreferenced in this configuration |
+| 1 | 1 | `-Wunused-variable` | `state` in `qcommon/common.c:496` |
+| - | 2 | `-Wsometimes-uninitialized` | one site, reported once per `||` operand |
 
-None of these is known to be a bug. They are volume work that wants a careful pass per warning, not a
-blanket cast. Once the count is zero, restore `-Werror` to both GCC and Clang and `/WX` to MSVC, and
-this section goes away.
+GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 55 is not a warning
+at all - LTO's "using serial compilation of 4 LTRANS jobs" carries the word and is counted by a
+`warning:` grep.
 
-Debug adds 3 `-Wformat-overflow` that Release does not.
+**Start with `qcommon/cmodel.c:657`**, Clang's `-Wsometimes-uninitialized`: "variable 'p' is used
+uninitialized whenever '||' condition is true". GCC misses it entirely, and it is the only remaining
+warning in a class that has actually produced bugs in this tree.
 
-**Clang's 1382 is really 55.** 1327 of them are a single repeated `-Wunknown-attributes`: Clang does
-not implement `callee_pop_aggregate_return` and ignores it. Guarding the attribute collapses Clang to
-GCC's number, and is the cheapest thing to do first:
-
-```c
-#if defined(__GNUC__) && !defined(__clang__)
-#define EXPORT __attribute__((callee_pop_aggregate_return(1)))
-#else
-#define EXPORT
-#endif
-```
-
-Ignoring the attribute is **not** a miscompile - the Clang build's `SV_Trace` still ends `ret $0x4`,
-because Clang's i386 default is already callee-pops (verified with objdump). Keep the attribute for
-GCC, where the original `(0)` was actively harmful; on Clang it only ever was a no-op.
-
-**Clang finds one thing GCC does not:** `-Wsometimes-uninitialized` at `qcommon/cmodel.c:657`,
-"variable 'p' is used uninitialized whenever '||' condition is true". That is the only remaining
-warning in the class that has actually produced bugs in this tree - look at it first.
+The rest is volume work that wants a careful pass per warning, not a blanket cast. None of it is
+known to be a bug. Once the count is zero on both compilers in both configurations, restore
+`-Werror` to both GCC and Clang and `/WX` to MSVC, and this section goes away.
 
 ## q2ded2 is not in the CMake build
 

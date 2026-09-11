@@ -147,14 +147,15 @@ typedef uint64_t uint64;
 //XXX: are these portable enough on non-win32?
 #define Q_stricmp strcasecmp
 #define Q_strncasecmp strncasecmp
-#if KINGPIN
 // i386 aggregate returns: the 1999 engine and game libraries pop the hidden pointer in the callee.
+// Clang needs no attribute and has none - its i386 default is already callee-pops.
+#if KINGPIN && defined(__GNUC__) && !defined(__clang__)
 #define EXPORT __attribute__((callee_pop_aggregate_return(1)))
 #define IMPORT __attribute__((callee_pop_aggregate_return(1)))
 #else
 #define EXPORT
 #define IMPORT
-#endif
+#endif // KINGPIN && __GNUC__ && !__clang__
 void Q_strlwr (char *str);
 int Q_vsnprintf (char *buff, size_t len, const char *fmt, va_list va);
 //int Q_snprintf (char *buff, size_t len, const char *fmt, ...);
