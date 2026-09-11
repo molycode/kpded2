@@ -7,8 +7,8 @@ was found in. Each item states what is known, what is only predicted, and what w
 
 `cmake/compilers/{gcc,clang}.cmake` build with `-Wall -Wextra -Wno-unused-parameter` but **without**
 `-Werror`, and `msvc.cmake` without `/WX`. That is a deviation from the house convention and it is
-temporary: every Linux preset still emits 55 warnings or more, so turning them into errors today
-would simply make the tree unbuildable.
+temporary: every Linux preset still emits more than fifty warnings, so turning them into errors
+today would simply make the tree unbuildable.
 
 All four Linux presets build with **0 errors**, from a clean build of each:
 
@@ -16,8 +16,8 @@ All four Linux presets build with **0 errors**, from a clean build of each:
 |---|---|
 | `linux-gcc_16-debug` | 57 |
 | `linux-gcc_16-release` | 55 |
-| `linux-clang_22-debug` | 55 |
-| `linux-clang_22-release` | 55 |
+| `linux-clang_22-debug` | 53 |
+| `linux-clang_22-release` | 53 |
 
 What is left, Release on each compiler:
 
@@ -28,17 +28,12 @@ What is left, Release on each compiler:
 | 8 | 8 | `-Wunused-but-set-variable` | dead locals, but some are debug accounting that a `#ifdef` no longer compiles |
 | 2 | 2 | `-Wunused-function` | `_password_changed` and `SV_RunPmoves` in `server/sv_main.c`, both `static` and both unreferenced in this configuration |
 | 1 | 1 | `-Wunused-variable` | `state` in `qcommon/common.c:496` |
-| - | 2 | `-Wsometimes-uninitialized` | one site, reported once per `||` operand |
 
 GCC Debug adds 3 `-Wformat-overflow` that Release does not. One of GCC Release's 55 is not a warning
 at all - LTO's "using serial compilation of 4 LTRANS jobs" carries the word and is counted by a
 `warning:` grep.
 
-**Start with `qcommon/cmodel.c:657`**, Clang's `-Wsometimes-uninitialized`: "variable 'p' is used
-uninitialized whenever '||' condition is true". GCC misses it entirely, and it is the only remaining
-warning in a class that has actually produced bugs in this tree.
-
-The rest is volume work that wants a careful pass per warning, not a blanket cast. None of it is
+What is left is volume work that wants a careful pass per warning, not a blanket cast. None of it is
 known to be a bug. Once the count is zero on both compilers in both configurations, restore
 `-Werror` to both GCC and Clang and `/WX` to MSVC, and this section goes away.
 

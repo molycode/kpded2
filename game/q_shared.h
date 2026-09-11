@@ -135,7 +135,7 @@ typedef unsigned __int64 uint64;
 #include <stdint.h>
 #define WINAPI
 #define RESTRICT
-#define NORETURN
+#define NORETURN __attribute__((noreturn))
 #define NOALIAS
 typedef int32_t int32;
 typedef int16_t int16;
