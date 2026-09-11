@@ -599,6 +599,10 @@ int main (int argc, char **argv)
 {
 	unsigned int 	time, oldtime, newtime, spins;
 
+	// Under a supervisor stdout is a pipe, which glibc fully buffers, so a server's whole log sits
+	// unseen until it exits. Line buffering is what a terminal would have given us anyway.
+	setvbuf (stdout, NULL, _IOLBF, 0);
+
 	// go back to real user for config loads
 	//saved_euid = geteuid();
 	//seteuid(getuid());
