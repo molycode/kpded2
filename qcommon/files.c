@@ -1027,7 +1027,7 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 
 	if (!strcmp (ext, "pak"))
 	{
-		unsigned		pakLen;
+		unsigned int	pakLen;
 		int				numpackfiles;
 		FILE			*packhandle;
 		dpackheader_t	header;

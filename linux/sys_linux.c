@@ -46,7 +46,7 @@ cvar_t *nostdout;
 
 extern cvar_t *sys_loopstyle;
 
-unsigned	sys_frame_time;
+unsigned int	sys_frame_time;
 
 //uid_t saved_euid;
 qboolean stdin_active = true;

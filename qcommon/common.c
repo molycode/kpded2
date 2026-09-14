@@ -1259,7 +1259,7 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t /*@ou
 	int			buttons;
 #endif
 	int			bits;
-	unsigned	msec;
+	unsigned int	msec;
 
 	memcpy (move, from, sizeof(*move));
 

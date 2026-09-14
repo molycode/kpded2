@@ -306,16 +306,16 @@ typedef struct client_s
 #if !KINGPIN
 	unsigned long				settings[CLSET_MAX];
 #endif
-	unsigned					totalMsecUsed;
-	unsigned					initialRealTime;
+	unsigned int				totalMsecUsed;
+	unsigned int				initialRealTime;
 
 	// MH: dead r1ch.net anticheat stuff removed
 
 	int							spawncount;
 
 #if !KINGPIN
-	unsigned					last_incoming_sequence;
-	unsigned					player_updates_sent;
+	unsigned int				last_incoming_sequence;
+	unsigned int				player_updates_sent;
 #endif
 
 	pmovestatus_t				current_move;
@@ -334,11 +334,11 @@ typedef struct client_s
 
 	// MH: cl_maxfps value for sv_fpsflood/sv_minpps checks
 	int				cl_maxfps;
-	unsigned		lastfpscheck;
+	unsigned int	lastfpscheck;
 
 	// MH: connection quality
 	float			quality;
-	unsigned		quality_last;
+	unsigned int	quality_last;
 	int				quality_acc;
 
 #if KINGPIN
@@ -353,7 +353,7 @@ typedef struct client_s
 	// MH: demo recording
 	char			demoname[MAX_QPATH];
 	FILE			*demofile;
-	unsigned		demostart;
+	unsigned int	demostart;
 } client_t;
 
 // a client can leave the server in one of four ways:
@@ -399,7 +399,7 @@ typedef struct
 	uint32 		next_client_entities;		// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
-	unsigned	last_playerupdate;
+	unsigned int	last_playerupdate;
 
 	int			last_heartbeat;
 

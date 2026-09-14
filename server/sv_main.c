@@ -1129,9 +1129,9 @@ static void SVC_DirectConnect (void)
 	//const banmatch_t	*match;
 
 	int			i;
-	unsigned	edictnum;
-	unsigned	protocol;
-	unsigned	version;
+	unsigned int	edictnum;
+	unsigned int	protocol;
+	unsigned int	version;
 	int			challenge;
 	int			previousclients;
 
@@ -1146,7 +1146,7 @@ static void SVC_DirectConnect (void)
 	//char		key[MAX_INFO_KEY];
 
 	int			reserved;
-	unsigned	msglen;
+	unsigned int	msglen;
 
 	uint16		qport;
 

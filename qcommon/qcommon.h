@@ -892,8 +892,8 @@ typedef struct
 
 	int			dropped;			// between last packet and previous
 
-	unsigned	last_received;		// for timeouts
-	unsigned	last_sent;			// for retransmits
+	unsigned int	last_received;		// for timeouts
+	unsigned int	last_sent;			// for retransmits
 
 	netadr_t	remote_address;
 
@@ -921,12 +921,12 @@ typedef struct
 
 	// MH: packet loss counting
 	qboolean	countacks;
-	unsigned	out_total;
-	unsigned	out_dropped;
-	unsigned	in_total;
-	unsigned	in_dropped;
+	unsigned int	out_total;
+	unsigned int	out_dropped;
+	unsigned int	in_total;
+	unsigned int	in_dropped;
 
-	unsigned	packetdup;
+	unsigned int	packetdup;
 } netchan_t;
 
 extern	netadr_t	net_from;
@@ -935,7 +935,7 @@ extern	byte		net_message_buffer[MAX_MSGLEN];
 
 
 void Netchan_Init (void);
-void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t *adr, int protocol, int qport, unsigned msglen);
+void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t *adr, int protocol, int qport, unsigned int msglen);
 
 qboolean Netchan_NeedReliable (netchan_t *chan);
 int	 Netchan_Transmit (netchan_t *chan, int length, const byte /*@null@*/*data);

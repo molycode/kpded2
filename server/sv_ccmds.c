@@ -3073,7 +3073,7 @@ void SV_ClientRecord_f (void)
 	}
 
 	strcpy(sv_client->demoname, name);
-	sv_client->demostart = (unsigned)-1;
+	sv_client->demostart = (unsigned int)-1;
 
 	if (sv_client->state == cs_spawned)
 		SV_WriteClientDemoServerData(sv_client);
@@ -3085,7 +3085,7 @@ void SV_SetStartTime_f (void)
 	extern time_t game_start_time;
 	time_t current;
 	struct tm *t;
-	unsigned h, m;
+	unsigned int h, m;
 	int d;
 
 	if (Cmd_Argc() == 2 && (!strcmp(Cmd_Argv(1), "none") || !strcmp(Cmd_Argv(1), "-")))

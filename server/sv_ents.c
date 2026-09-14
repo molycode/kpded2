@@ -1250,7 +1250,7 @@ void SV_SendPlayerUpdates (int msec_to_next_frame)
 	client_frame_t	*frame;
 	entity_state_t	*ent;
 	int				framenum, i, interval;
-	unsigned		requested;
+	unsigned int	requested;
 	sizebuf_t		buff;
 	byte			playerbuff[1024];
 	qboolean		wrote;
@@ -1321,7 +1321,7 @@ void SV_SendPlayerUpdates (int msec_to_next_frame)
 
 			if (buff.cursize && !buff.overflowed)
 			{
-				unsigned	real_sequence;
+				unsigned int	real_sequence;
 
 				//im so very sorry... but we can't let the client know we've received their usercmd
 				//until we send out the playerstate to them, or cl prediction screws up since it

@@ -193,7 +193,7 @@ Netchan_Setup
 called to open a channel to a remote system
 ==============
 */
-void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t *adr, int protocol, int qport, unsigned msglen)
+void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t *adr, int protocol, int qport, unsigned int msglen)
 {
 	memset (chan, 0, sizeof(*chan));
 	
@@ -246,7 +246,7 @@ int Netchan_Transmit (netchan_t *chan, int length, const byte *data)
 	byte		send_buf[MAX_MSGLEN];
 	qboolean	send_reliable;
 	uint32		w1, w2;
-	unsigned	i;
+	unsigned int	i;
 
 	// check for message overflow (this is only for client now ?)
 	if (chan->message.overflowed)

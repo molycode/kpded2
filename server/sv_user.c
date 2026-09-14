@@ -41,7 +41,7 @@ char	svBeginStuffString[1100];
 download_t *downloads = NULL;
 
 #ifdef _WIN32
-static unsigned __stdcall CacheDownload(void *arg)
+static unsigned int __stdcall CacheDownload(void *arg)
 #else
 static void *CacheDownload(void *arg)
 #endif
@@ -2902,7 +2902,7 @@ static void SV_Lag_f (void)
 
 static void SV_PacketDup_f (void)
 {
-	unsigned	i;
+	unsigned int	i;
 
 	if (Cmd_Argc() == 1)
 	{
@@ -3390,9 +3390,9 @@ static void SV_SetClientSetting (client_t *cl)
 void SV_RunMultiMoves (client_t *cl)
 {
 	int			i;
-	unsigned	bits;
-	unsigned	offset;
-	unsigned	nummoves;
+	unsigned int	bits;
+	unsigned int	offset;
+	unsigned int	nummoves;
 
 	int			lastframe;
 
@@ -3818,7 +3818,7 @@ skipquality:
 			{
 				int d = newcmd.msec - (oldcmd.msec <= oldest.msec ? oldcmd.msec : oldest.msec);
 				int i = sv.time / 1000;
-				if ((unsigned)(i - cl->cmd_delayindex) >= 20)
+				if ((unsigned int)(i - cl->cmd_delayindex) >= 20)
 				{
 					memset(cl->cmd_delays, 0, sizeof(cl->cmd_delays));
 					cl->cmd_delayindex = i;
