@@ -131,8 +131,11 @@ download_t *NewCachedDownload(client_t *cl, qboolean compress)
 						d->refc++;
 						return d;
 					}
-					if (!d->refc)
+					// d->fd is cleared by CacheDownload as it finishes; reusing the entry before
+					// then would realloc the buffer that thread is still compressing into.
+					if (!d->refc && d->fd == -1)
 					{
+						Sys_WaitThread(d->thread);
 						d->refc = 1;
 						d->size = cl->downloadsize;
 						d->mtime = s.st_mtime;
