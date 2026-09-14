@@ -1664,6 +1664,39 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 }
 
 /*
+** FS_ValidPattern
+**
+** wildcardfit runs off an unterminated '[' and backtracks unbounded on '*'.
+*/
+static qboolean FS_ValidPattern (char const *pattern)
+{
+	qboolean	valid = (qboolean)(strlen (pattern) < MAX_QPATH);
+	int			nstars = 0;
+	char const	*p;
+
+	for (p = pattern; valid && *p; p++)
+	{
+		if (*p == '*')
+		{
+			nstars++;
+			if (nstars > 4)
+				valid = false;
+		}
+		else if (*p == '[')
+		{
+			char const	*close = strchr (p, ']');
+
+			if (close)
+				p = close;
+			else
+				valid = false;
+		}
+	}
+
+	return valid;
+}
+
+/*
 ** FS_ListPakFiles
 */
 static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, int *numfiles)
@@ -1761,6 +1794,12 @@ static void FS_Dir_f( void )
 			*tmp = '/';
 	}
 
+	if ( !FS_ValidPattern( wildcard ) )
+	{
+		Com_Printf( "Bad pattern: under %d characters, balanced [ ], at most 4 *.\n", LOG_GENERAL, MAX_QPATH );
+		return;
+	}
+
 	// FS_NextPath skips packed searchpaths, so walk the list directly to reach them.
 	for ( search = fs_searchpaths; search; search = search->next )
 	{
@@ -1777,9 +1816,12 @@ static void FS_Dir_f( void )
 		Com_Printf( "Directory of %s\n", LOG_GENERAL, findname );
 		Com_Printf( "----\n", LOG_GENERAL );
 
+		dirnames = NULL;
+
 		if ( search->pack )
 			dirnames = FS_ListPakFiles( search->pack, wildcard, &ndirs );
-		else
+		// Sys_FindFirst strcpy()s this into a MAX_OSPATH buffer with no bound of its own.
+		else if ( strlen( findname ) < MAX_OSPATH )
 			dirnames = FS_ListFiles( findname, &ndirs, 0, 0 );
 
 		if ( dirnames != 0 )
@@ -1943,39 +1985,6 @@ static int EXPORT maplistcmp (const void *a, const void *b)
 		d = ma->seq - mb->seq;
 
 	return d;
-}
-
-/*
-** FS_ValidPattern
-**
-** wildcardfit runs off an unterminated '[' and backtracks unbounded on '*'.
-*/
-static qboolean FS_ValidPattern (char const *pattern)
-{
-	qboolean	valid = (qboolean)(strlen (pattern) < MAX_QPATH);
-	int			nstars = 0;
-	char const	*p;
-
-	for (p = pattern; valid && *p; p++)
-	{
-		if (*p == '*')
-		{
-			nstars++;
-			if (nstars > 4)
-				valid = false;
-		}
-		else if (*p == '[')
-		{
-			char const	*close = strchr (p, ']');
-
-			if (close)
-				p = close;
-			else
-				valid = false;
-		}
-	}
-
-	return valid;
 }
 
 static void FS_MapListAdd (maplistentry_t **list, int *nmaps, int *maxmaps, char const *path, char const *origin)
