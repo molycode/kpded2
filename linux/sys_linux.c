@@ -153,14 +153,16 @@ void Sys_Quit (void)
 	exit(0);
 }
 
+// Set from signal context only; the main loop runs the shutdown. Restoring SIG_DFL first keeps a
+// second signal fatal, so an operator can still kill a wedged server.
+volatile sig_atomic_t sys_signal_quit = 0;
+
 void Sys_KillServer (int sig)
 {
 	signal (SIGTERM, SIG_DFL);
 	signal (SIGINT, SIG_DFL);
 
-	Com_Printf ("Got sig %d, shutting down.\n", LOG_SERVER|LOG_NOTICE, sig);
-	Cmd_TokenizeString (va("Exiting on signal %d\n", sig), 0);
-	Com_Quit();
+	sys_signal_quit = sig;
 }
 
 // MH: handle SIGHUP for log rotation
@@ -658,6 +660,13 @@ int main (int argc, char **argv)
 		// MH: enforce 24-bit precision to match client
 		Sys_SetFPU ();
 #endif
+
+		if (sys_signal_quit)
+		{
+			Com_Printf ("Got sig %d, shutting down.\n", LOG_SERVER|LOG_NOTICE, (int)sys_signal_quit);
+			Cmd_TokenizeString (va("Exiting on signal %d\n", (int)sys_signal_quit), 0);
+			Com_Quit();
+		}
 
 		Qcommon_Frame (time);
 		oldtime = newtime;
