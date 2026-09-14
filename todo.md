@@ -78,12 +78,6 @@ fixed in this tree came from reading around the findings rather than from a find
 
 ## Open: flagged while triaging, each a separate change
 
-- **`server/sv_user.c:2459`** -- `VarBanMatch` converts a client's cvar reply with `atof`, so a
-  non-numeric reply compares equal to 0. A `=0` cvarban then matches innocent clients (and
-  `CVARBAN_BLACKHOLE` blackholes their IP), while `>N`/`<N` rules are evaded by replying with any
-  non-numeric string. The empty-string half is deliberate -- MH commented out the guard and annotated
-  it "empty string = 0" -- but the non-numeric half is a different case. Fixing it is a policy
-  decision about what a numeric ban operator should do with unparseable input.
 - **`server/sv_user.c:1642, 1647, 1799`** -- `atoi(...) * 1366` and `atoi(...) << 10` are computed
   *before* the range test, so a client sending a huge number causes signed overflow. The wrapped
   value is still range-checked, so there is no out-of-bounds access, but the overflow is UB on a
