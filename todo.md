@@ -76,18 +76,18 @@ as falling through.
 Notable: of the 29 analyzer memory-safety findings, **all 29 were false positives** -- every defect
 fixed in this tree came from reading around the findings rather than from a finding itself.
 
-## Open: flagged while triaging, each a separate change
+## Done 2026-09-14: the smaller items flagged during triage
 
-- **`server/sv_user.c:1642, 1647, 1799`** -- `atoi(...) * 1366` and `atoi(...) << 10` are computed
-  *before* the range test, so a client sending a huge number causes signed overflow. The wrapped
-  value is still range-checked, so there is no out-of-bounds access, but the overflow is UB on a
-  network-driven path.
-- **`server/sv_ccmds.c:84`** -- `char num[128]` filled by an unbounded `num[j++] = *s++`; `sv addip`
-  with 128+ digits smashes the stack. Console/rcon only.
-- **`qcommon/cvar.c:461`** -- `int h, m;` passed to `sscanf` `%u`. Harmless today because the string
-  is re-parsed and range-checked as unsigned, but it is a type mismatch.
-- **`server/sv_ccmds.c:344`** -- `qCopyFile` ignores `fwrite`'s return, so a full disk silently
-  truncates a savegame copy while the read side does check `ferror`.
+All cleared, one commit each:
+
+- **`sv_user.c`** -- three sites scaled a client-supplied number by 1366 or shifted it left ten
+  places before range-checking it, so the arithmetic overflowed on a network-driven path and the
+  wrapped value could still pass the check that followed. Each now ranges the count first.
+- **`cvar.c`** -- the hostname start-time scan declared `int` and passed the addresses to `%u`.
+- **`sv_ccmds.c`** -- `qCopyFile` ignored `fwrite`'s return, so a full disk produced a silently
+  truncated savegame copy while the read side checked `ferror`.
+
+**92 is the current baseline.**
 
 Run it with the pinned Clang, against a compile database:
 
