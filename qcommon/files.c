@@ -1920,6 +1920,321 @@ void FS_FixFileNames_f (void)
 #endif
 
 /*
+==============================================================================
+
+MAP LISTING
+
+==============================================================================
+*/
+
+#define MAPLIST_MAX_LINES	200
+
+typedef struct
+{
+	char		name[MAX_QPATH];
+	char		origin[MAX_QPATH];
+	int			seq;
+	qboolean	rotation;
+} maplistentry_t;
+
+static int EXPORT maplistcmp (const void *a, const void *b)
+{
+	maplistentry_t const	*ma = (maplistentry_t const *)a;
+	maplistentry_t const	*mb = (maplistentry_t const *)b;
+	int						d = strcmp (ma->name, mb->name);
+
+	// qsort is not stable, so searchpath order has to live in the key itself: the first
+	// searchpath to supply a name holds the copy FS_FOpenFile would actually open.
+	if (d == 0)
+		d = ma->seq - mb->seq;
+
+	return d;
+}
+
+/*
+** FS_ValidPattern
+**
+** wildcardfit walks an unterminated '[' straight off the end of the buffer, and its
+** asterisk() recursion backtracks with no depth bound, so a pattern arriving from rcon has
+** to be checked before it is handed over.
+*/
+static qboolean FS_ValidPattern (char const *pattern)
+{
+	qboolean	valid = (qboolean)(strlen (pattern) < MAX_QPATH);
+	int			nstars = 0;
+	char const	*p;
+
+	for (p = pattern; valid && *p; p++)
+	{
+		if (*p == '*')
+		{
+			nstars++;
+			if (nstars > 4)
+				valid = false;
+		}
+		else if (*p == '[')
+		{
+			char const	*close = strchr (p, ']');
+
+			if (close)
+				p = close;
+			else
+				valid = false;
+		}
+	}
+
+	return valid;
+}
+
+static void FS_MapListAdd (maplistentry_t **list, int *nmaps, int *maxmaps, char const *path, char const *origin)
+{
+	char const		*name;
+	char			*ext;
+	maplistentry_t	*entry;
+
+	name = strrchr (path, '/');
+	if (name)
+		name++;
+	else
+		name = path;
+
+	if (*nmaps == *maxmaps)
+	{
+		*maxmaps = *maxmaps ? *maxmaps * 2 : 256;
+		*list = realloc (*list, sizeof(**list) * (size_t)*maxmaps);
+		if (!*list)
+			Com_Error (ERR_FATAL, "FS_MapListAdd: out of memory");
+	}
+
+	entry = &(*list)[*nmaps];
+
+	Q_strncpy (entry->name, name, sizeof(entry->name)-1);
+	Q_strncpy (entry->origin, origin, sizeof(entry->origin)-1);
+	entry->seq = *nmaps;
+	entry->rotation = false;
+
+	ext = strrchr (entry->name, '.');
+	if (ext)
+		*ext = 0;
+
+	fast_strlwr (entry->name);
+
+	(*nmaps)++;
+}
+
+/*
+** FS_MapCycleFile
+**
+** Mirrors MapCycleNext in the game library. Both cvars belong to the game library and
+** neither exists before it loads, so an absent teamplay is reported rather than guessed -
+** Cvar_IntValue would read 0 and quietly name maps.lst on a teamplay server. Never Cvar_Get
+** them: creating g_mapcycle_file here would stop gi.cvar applying the mod's own default.
+*/
+static char const /*@null@*/ *FS_MapCycleFile (void)
+{
+	char const	*file = NULL;
+
+	if (Cvar_FindVar ("teamplay"))
+	{
+		file = Cvar_VariableString ("g_mapcycle_file");
+
+		if (!file || !*file)
+			file = Cvar_IntValue ("teamplay") ? "teammaps.lst" : "maps.lst";
+	}
+
+	return file;
+}
+
+/*
+** FS_MapList_f
+*/
+static void FS_MapList_f (void)
+{
+	searchpath_t	*search;
+	maplistentry_t	*list = NULL;
+	int				nmaps = 0;
+	int				maxmaps = 0;
+	int				unique = 0;
+	int				matched = 0;
+	int				shown = 0;
+	int				lines = 0;
+	int				inrotation = 0;
+	int				i;
+	char			findname[MAX_OSPATH];
+	char			filter[MAX_QPATH];
+	qboolean		filtered;
+	qboolean		badfilter = false;
+	char const		*cyclefile;
+
+	filtered = (qboolean)(Cmd_Argc() > 1);
+
+	if (filtered)
+	{
+		Q_strncpy (filter, Cmd_Argv(1), sizeof(filter)-1);
+		fast_strlwr (filter);
+
+		// A bare word is far more useful as a prefix than as an exact name.
+		if (!strpbrk (filter, "*?[") && strlen (filter) < sizeof(filter)-2)
+			strcat (filter, "*");
+
+		badfilter = (qboolean)!FS_ValidPattern (filter);
+	}
+
+	if (badfilter)
+	{
+		Com_Printf ("Bad filter: keep it under %d characters, balance any [ ], and use at most 4 *.\n",
+			LOG_GENERAL, MAX_QPATH);
+		return;
+	}
+
+	for (search = fs_searchpaths; search; search = search->next)
+	{
+		if (search->pack)
+		{
+			int		npak = 0;
+			char	**paknames = FS_ListPakFiles (search->pack, "maps/*.bsp", &npak);
+
+			if (paknames)
+			{
+				char const	*origin = strrchr (search->pack->filename, '/');
+
+				origin = origin ? origin + 1 : search->pack->filename;
+
+				for (i = 0; i < npak-1; i++)
+				{
+					FS_MapListAdd (&list, &nmaps, &maxmaps, paknames[i], origin);
+					free (paknames[i]);
+				}
+				free (paknames);
+			}
+		}
+		// Sys_FindFirst strcpy()s this into a MAX_OSPATH buffer with no bound of its own.
+		else if (strlen (search->filename) + sizeof("/maps/*.bsp") <= sizeof(findname))
+		{
+			char	*s;
+
+			Com_sprintf (findname, sizeof(findname), "%s/maps/*.bsp", search->filename);
+
+			s = Sys_FindFirst (findname, 0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
+			while (s)
+			{
+				FS_MapListAdd (&list, &nmaps, &maxmaps, s, "disk");
+				s = Sys_FindNext (0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
+			}
+			Sys_FindClose ();
+		}
+		else
+		{
+			Com_Printf ("WARNING: searchpath too long to scan: %s\n", LOG_GENERAL|LOG_WARNING, search->filename);
+		}
+	}
+
+	if (!nmaps)
+	{
+		Com_Printf ("No maps found.\n", LOG_GENERAL);
+		return;
+	}
+
+	qsort (list, (size_t)nmaps, sizeof(list[0]), maplistcmp);
+
+	// Collapse duplicates; the lowest seq survives, which is the copy that would load.
+	for (i = 0; i < nmaps; i++)
+	{
+		if (unique == 0 || strcmp (list[unique-1].name, list[i].name))
+			list[unique++] = list[i];
+	}
+
+	cyclefile = FS_MapCycleFile ();
+
+	if (cyclefile)
+	{
+		char	cyclepath[MAX_OSPATH];
+		FILE	*f;
+
+		Com_sprintf (cyclepath, sizeof(cyclepath), "%s/%s", FS_Gamedir(), cyclefile);
+
+		// Plain fopen, as MapCycleNext does: a maps.lst inside a pak is one the mod could
+		// never open, so reporting it would describe a rotation that never runs.
+		f = fopen (cyclepath, "rb");
+		if (f)
+		{
+			char	entry[MAX_QPATH];
+			char	fmt[16];
+
+			// A field width is what keeps an over-long name inside the buffer.
+			Com_sprintf (fmt, sizeof(fmt), "%%%ds", (int)sizeof(entry) - 1);
+
+			while (fscanf (f, fmt, entry) == 1)
+			{
+				qboolean	found = false;
+				int			ch = 0;
+
+				// MapCycleNext matches with Q_stricmp, so both sides go to lower case here.
+				fast_strlwr (entry);
+
+				for (i = 0; i < unique; i++)
+				{
+					if (!strcmp (list[i].name, entry))
+					{
+						list[i].rotation = true;
+						found = true;
+						inrotation++;
+					}
+				}
+
+				if (!found && lines < MAPLIST_MAX_LINES)
+				{
+					Com_Printf ("! %s: %s is in the rotation but not installed\n",
+						LOG_GENERAL|LOG_WARNING, cyclefile, entry);
+					lines++;
+				}
+
+				// Only the first token is the map name; the rest of the line is its title.
+				while (ch != '\n' && ch != EOF)
+					ch = fgetc (f);
+			}
+			fclose (f);
+		}
+		else
+		{
+			Com_Printf ("%s not readable - rotation not shown.\n", LOG_GENERAL, cyclepath);
+		}
+	}
+	else
+	{
+		Com_Printf ("No game library loaded - rotation not shown.\n", LOG_GENERAL);
+	}
+
+	for (i = 0; i < unique; i++)
+	{
+		if (!filtered || wildcardfit (filter, list[i].name))
+		{
+			matched++;
+
+			if (lines < MAPLIST_MAX_LINES)
+			{
+				Com_Printf ("%-32s %-12s%s\n", LOG_GENERAL, list[i].name, list[i].origin,
+					list[i].rotation ? " [rotation]" : "");
+				lines++;
+				shown++;
+			}
+		}
+	}
+
+	Com_Printf ("----\n", LOG_GENERAL);
+
+	if (cyclefile)
+		Com_Printf ("%d of %d maps, %d in rotation (%s)\n", LOG_GENERAL, matched, unique, inrotation, cyclefile);
+	else
+		Com_Printf ("%d of %d maps\n", LOG_GENERAL, matched, unique);
+
+	if (matched > shown)
+		Com_Printf ("%d more not shown - narrow the filter.\n", LOG_GENERAL, matched - shown);
+
+	free (list);
+}
+
+/*
 ================
 FS_InitFilesystem
 ================
@@ -1931,6 +2246,9 @@ void FS_InitFilesystem (void)
 	Cmd_AddCommand ("path", FS_Path_f);
 	Cmd_AddCommand ("link", FS_Link_f);
 	Cmd_AddCommand ("dir", FS_Dir_f );
+
+	//list every map on the searchpath, with its source and rotation membership
+	Cmd_AddCommand ("maplist", FS_MapList_f);
 
 	//r1: search for a file
 	Cmd_AddCommand ("whereis", FS_WhereIs_f);
