@@ -60,3 +60,30 @@ included, so it is worth a pull request to MonkeyHarris rather than carrying pri
 measurements are in the commit that fixed it.
 
 **What would settle it:** Thomas's call on whether to open the PR.
+
+## Triage the clang-tidy findings
+
+`.clang-tidy` is in place and tuned for this tree, but nothing has been triaged yet. Every exclusion
+in it is a check measured firing in the dozens or hundreds on code that is correct as written, and
+each carries its reason in the file.
+
+What a pass would face, measured on `server/sv_user.c` and `qcommon/common.c`:
+
+- `bugprone-macro-parentheses`, 107. All in headers, so the same finding repeats for every translation
+  unit including them. Run tree-wide with `run-clang-tidy`, which deduplicates. Left on despite the
+  volume because unparenthesised macro parameters are a real defect class in C.
+- `bugprone-unchecked-string-to-number-conversion`, 21. `atoi` on cvar and network input. Quake 2
+  leans on atoi returning 0 for a bad value, so most of these are likely correct by design - but that
+  has to be shown rather than assumed, which is why the check is not pre-excluded.
+- Single findings worth reading first, because they are the kind the hand audits were hunting:
+  `clang-analyzer-unix.Malloc`, `bugprone-suspicious-realloc-usage`, `clang-analyzer-core.DivideZero`,
+  `clang-analyzer-deadcode.DeadStores`, `bugprone-suspicious-string-compare`.
+
+Run it with the pinned Clang, against a compile database:
+
+    /media/thomas/data/compilers/clang_22/bin/clang-tidy -p build/clang_22-RelWithDebInfo server/<file>.c
+
+Treat it like the -Wsign-compare pass: triage every finding into real or false, fix the real ones in
+their own commits, and disable a check only once its findings are shown to be false, with the reason
+written into `.clang-tidy`. That pass found four real bugs; the -O2 and sanitizer configurations added
+two more. This is the next net of the same kind.

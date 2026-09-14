@@ -1,0 +1,42 @@
+# The bug-finding checks only. Style is the compiler's job here and the house rules' job in review; this
+# file exists to catch defects, so a check that argues about taste is off rather than argued with.
+#
+# This tree is 1999-era C on a Quake 2 base, so the noise profile differs from a modern C++ project: the
+# exclusions below are checks that fire in the hundreds on code that is correct as written. If one starts
+# finding real defects, turn it back on -- none of them are off because the findings were tedious.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  performance-*,
+  misc-*,
+  -bugprone-narrowing-conversions,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  -clang-analyzer-security.insecureAPI.strcpy,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -misc-include-cleaner,
+  -misc-unused-parameters,
+  -misc-predictable-rand,
+  -misc-use-internal-linkage,
+  -misc-no-recursion,
+  -performance-type-promotion-in-math-fn
+
+# Our own sources. geoip/ is vendored and compiled with -w for the same reason.
+HeaderFilterRegex: '(qcommon|server|game)/'
+
+# bugprone-narrowing-conversions: Quake 2 moves between int and float constantly and by design.
+# bugprone-easily-swappable-parameters: every (x, y, z) and (min, max) triple trips it.
+# bugprone-reserved-identifier: id's byte-swap helpers are named _BigShort, _LittleLong and so on.
+#   Technically reserved, but renaming 1999 API to satisfy a linter buys nothing.
+# clang-analyzer-security.insecureAPI.strcpy and DeprecatedOrUnsafeBufferHandling: they fire on every
+#   strcpy, sprintf and memcpy in the tree rather than on a defect.
+# misc-include-cleaner: disagrees with the include rules this tree follows.
+# misc-unused-parameters: the compiler flags already carry -Wno-unused-parameter for the same reason.
+# misc-predictable-rand: the server uses rand() for gameplay, which is what it is for.
+# misc-use-internal-linkage: 30 findings in three files. clang-tidy sees one translation unit, so it
+#   cannot know a function is called from another one, and in a multi-TU C project that makes it a
+#   structural false positive rather than a finding.
+# misc-no-recursion: recursion is not a defect.
+# performance-type-promotion-in-math-fn: the double math functions are called deliberately; the float
+#   variants change results, and this has to behave like the 1999 server.
