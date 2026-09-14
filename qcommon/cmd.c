@@ -519,7 +519,7 @@ void Cmd_Exec_f (void)
 	if (len > COMMAND_BUFFER_SIZE - 2)
 	{
 		Com_Printf ("WARNING: %s exceeds maximum config file length\n", LOG_GENERAL, Cmd_Argv(1));
-		len = COMMAND_BUFFER_SIZE - 2;
+		return;
 	}
 
 	len = FS_LoadFile (path, (void **)&f);
