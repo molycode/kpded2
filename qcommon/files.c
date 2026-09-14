@@ -1664,13 +1664,93 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 }
 
 /*
+** FS_ListPakFiles
+**
+** A pak's own directory, in the shape FS_ListFiles returns so FS_Dir_f can print and free
+** both the same way. Keys are whole quake paths, so the pattern's directory has to match
+** exactly - otherwise "dir" would walk the entire archive instead of listing one directory.
+*/
+static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, int *numfiles)
+{
+	char			pattern[MAX_QPATH];
+	char			*base;
+	char const		*dir;
+	size_t			dirlen;
+	char			**list;
+	int				nfiles = 0;
+	RBLIST			*rblist;
+	char const		*key;
+
+	*numfiles = 0;
+
+	if (!pack->rb || pack->numfiles <= 0)
+		return NULL;
+
+	// Keys were lowercased by fast_strlwr when the pak loaded, and wildcardfit is case sensitive.
+	Q_strncpy (pattern, wildcard, sizeof(pattern)-1);
+	fast_strlwr (pattern);
+
+	base = strrchr (pattern, '/');
+	if (base)
+	{
+		*base++ = 0;
+		dir = pattern;
+	}
+	else
+	{
+		base = pattern;
+		dir = "";
+	}
+	dirlen = strlen (dir);
+
+	// Sys_FindFirst rewrites this on the disk side (q_shlinux.c), so both halves of "dir"
+	// have to agree on what the default pattern means.
+	if (!strcmp (base, "*.*"))
+		strcpy (base, "*");
+
+	list = malloc (sizeof(char *) * (size_t)(pack->numfiles + 1));
+	if (!list)
+		Com_Error (ERR_FATAL, "FS_ListPakFiles: out of memory");
+
+	memset (list, 0, sizeof(char *) * (size_t)(pack->numfiles + 1));
+
+	rblist = rbopenlist (pack->rb);
+	while ((key = rbreadlist (rblist)) != NULL && nfiles < pack->numfiles)
+	{
+		char const	*keybase = strrchr (key, '/');
+		size_t		keydirlen = keybase ? (size_t)(keybase - key) : 0;
+
+		if (keybase)
+			keybase++;
+		else
+			keybase = key;
+
+		// wildcardfit only walks its arguments, so casting away const is safe.
+		if (keydirlen == dirlen && !strncmp (key, dir, dirlen) && wildcardfit (base, (char *)keybase))
+			list[nfiles++] = strdup (key);
+	}
+	rbcloselist (rblist);
+
+	if (!nfiles)
+	{
+		free (list);
+		return NULL;
+	}
+
+	*numfiles = nfiles + 1;
+
+	return list;
+}
+
+/*
 ** FS_Dir_f
 */
 static void FS_Dir_f( void )
 {
-	char	*path = NULL;
+	searchpath_t	*search;
 	char	findname[1024];
 	char	wildcard[1024] = "*.*";
+	char	*tmp;
 	char	**dirnames;
 	int		ndirs;
 
@@ -1680,22 +1760,34 @@ static void FS_Dir_f( void )
 		Q_strncpy( wildcard, Cmd_Argv( 1 ), sizeof(wildcard)-1);
 	}
 
-	while ( ( path = FS_NextPath( path ) ) != NULL )
+	for ( tmp = wildcard; *tmp != 0; tmp++ )
 	{
-		char *tmp = findname;
+		if ( *tmp == '\\' )
+			*tmp = '/';
+	}
 
-		Com_sprintf( findname, sizeof(findname), "%s/%s", path, wildcard );
+	// FS_NextPath skips packed searchpaths, so walk the list directly to reach them.
+	for ( search = fs_searchpaths; search; search = search->next )
+	{
+		char const	*from = search->pack ? search->pack->filename : search->filename;
 
-		while ( *tmp != 0 )
+		Com_sprintf( findname, sizeof(findname), "%s/%s", from, wildcard );
+
+		for ( tmp = findname; *tmp != 0; tmp++ )
 		{
-			if ( *tmp == '\\' ) 
+			if ( *tmp == '\\' )
 				*tmp = '/';
-			tmp++;
 		}
+
 		Com_Printf( "Directory of %s\n", LOG_GENERAL, findname );
 		Com_Printf( "----\n", LOG_GENERAL );
 
-		if ( ( dirnames = FS_ListFiles( findname, &ndirs, 0, 0 ) ) != 0 )
+		if ( search->pack )
+			dirnames = FS_ListPakFiles( search->pack, wildcard, &ndirs );
+		else
+			dirnames = FS_ListFiles( findname, &ndirs, 0, 0 );
+
+		if ( dirnames != 0 )
 		{
 			int i;
 
@@ -1711,7 +1803,7 @@ static void FS_Dir_f( void )
 			free( dirnames );
 		}
 		Com_Printf( "\n", LOG_GENERAL );
-	};
+	}
 }
 
 /*
