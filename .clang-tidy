@@ -20,6 +20,16 @@ Checks: >
   -misc-predictable-rand,
   -misc-use-internal-linkage,
   -misc-no-recursion,
+  -bugprone-assignment-in-if-condition,
+  -bugprone-switch-missing-default-case,
+  -bugprone-branch-clone,
+  -bugprone-float-loop-counter,
+  -clang-analyzer-security.FloatLoopCounter,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-signed-char-misuse,
+  -bugprone-suspicious-string-compare,
+  -bugprone-suspicious-include,
+  -performance-no-int-to-ptr,
   -performance-type-promotion-in-math-fn
 
 # Our own sources. geoip/ is vendored and compiled with -w for the same reason.
@@ -42,3 +52,45 @@ ExcludeHeaderFilterRegex: 'redblack\.h'
 # misc-no-recursion: recursion is not a defect.
 # performance-type-promotion-in-math-fn: the double math functions are called deliberately; the float
 #   variants change results, and this has to behave like the 1999 server.
+
+# ---- Added 2026-09-14, after triaging all 468 remaining findings across both trees. Each of these
+# was read in full (not sampled) and produced no defect; the checks that DID produce defects stay on
+# and are listed at the bottom.
+#
+# bugprone-assignment-in-if-condition: the Quake 2 find-and-test idiom, `if ((e = G_Find(...)) != NULL)`
+#   and `if (!(mem = ...))`, always parenthesised and either compared or negated. A census of all 90
+#   sites found no bare `if (a = b)`.
+# bugprone-switch-missing-default-case: closed internal sets -- rand()%N, ORIENTATION_*, level.episode,
+#   MOD_* -- where falling out is the intended no-op. The one switch over untrusted input, the client
+#   command byte in kpded2's sv_user.c, already has a default that kicks the client.
+# bugprone-branch-clone: deliberate shared cases -- surface, weapon, classname and episode
+#   enumerations, parallel guard clauses -- or verbatim id code. Worth a one-off manual run, which
+#   found the AI_SideTrace yaw bug, but not worth a standing check.
+# bugprone-float-loop-counter / clang-analyzer-security.FloatLoopCounter: vec3_t is float[3], so
+#   world-space probe loops use float counters with exactly-representable integer steps. The same 14
+#   lines reported twice -- the analyzer set is a strict subset of the bugprone one.
+# bugprone-multi-level-implicit-pointer-conversion: an array of pointers passed to memset/fwrite/qsort
+#   as void*, or the redblack API returning void* for a pointer to a stored void* slot. No pointed-to
+#   size mismatch; both trees are i386.
+# bugprone-signed-char-misuse: all sites correct as written. COM_Parse's scanner must treat a high-bit
+#   byte the way the unpatchable retail client does; two more are neutralised by the `c &= 127` on the
+#   next line; one flags MSG_ReadChar's deliberate (signed char) protocol cast, which is the fix rather
+#   than the bug. The check also cannot see the one shape that would matter here, a plain char passed
+#   to the ctype functions, because it inspects assignments and subscripts, not call arguments.
+# bugprone-suspicious-string-compare: every site is `if (strcmp(a, b))` used as a boolean, which reads
+#   only the sign and is correct. Nothing in either tree stores a compare result in a narrow type or
+#   tests it against literal 1 or -1, and the genuine ordering uses already spell out `> 0` / `< 0`.
+# bugprone-suspicious-include: net_udp.c includes qcommon/net_common.c, R1Q2's mechanism for sharing
+#   net code between the Linux and Win32 socket layers. Deliberate and permanent.
+# performance-no-int-to-ptr: mmap's MAP_FAILED comparison and the ELF load address from
+#   dl_iterate_phdr, which is an integer by API. Neither pointer is dereferenced.
+#
+# KEPT ON deliberately, with what each returned in the 2026-09-14 pass:
+# bugprone-integer-division -- the vote-ban majority threshold and the Bagman cash-bag delay ratio.
+# clang-analyzer-deadcode.DeadStores -- a disabled length clamp guarding a 64 KiB stack buffer.
+# bugprone-unchecked-string-to-number-conversion -- a /0 CIDR mask reaching a shift by 32, pak files
+#   silently reloaded as pak0, and trigger_gravity truncating "0.5" to 0.
+# clang-analyzer-optin.core.EnumCastOutOfRange -- a means-of-death constant passed as a qboolean.
+# bugprone-signal-handler -- the SIGTERM handler running the whole shutdown from signal context.
+# misc-redundant-expression, bugprone-unsafe-functions -- no findings, but cheap and they guard a real
+#   defect class (`a && a`, and setbuf reappearing in the stdio setup).

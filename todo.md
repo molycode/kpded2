@@ -67,18 +67,33 @@ measurements are in the commit that fixed it.
 in it is a check measured firing in the dozens or hundreds on code that is correct as written, and
 each carries its reason in the file.
 
-`bugprone-macro-parentheses` is DONE and the check is clean. **The memory-safety class is DONE too**
-(2026-09-14): 29 findings triaged, 28 of them false positives. The three real defects fixed came out
-of reading around the findings rather than from the findings themselves -- the Z_Realloc zone chain,
-FS_LoadFile's pak handle, and FS_ListFiles' two sweeps. A tree-wide run is now **168 unique findings
-over 24 checks**. What is left:
+**THE CLANG-TIDY TRIAGE IS COMPLETE, 2026-09-14.** Every check was triaged; the exclusions in
+`.clang-tidy` each carry the reason. A tree-wide run is now **95 findings over 16 checks**, all
+individually examined and recorded false. Most are the `gi.error`/`Com_Error`-is-noreturn artifact:
+the analyzer cannot see the attribute through a function pointer, so every guard built on it reads
+as falling through.
 
-- `bugprone-unchecked-string-to-number-conversion`, 21. `atoi` on cvar and network input. Quake 2
-  leans on atoi returning 0 for a bad value, so most of these are likely correct by design - but that
-  has to be shown rather than assumed, which is why the check is not pre-excluded.
-- Single findings worth reading first, because they are the kind the hand audits were hunting:
-  `clang-analyzer-unix.Malloc`, `bugprone-suspicious-realloc-usage`, `clang-analyzer-core.DivideZero`,
-  `clang-analyzer-deadcode.DeadStores`, `bugprone-suspicious-string-compare`.
+Notable: of the 29 analyzer memory-safety findings, **all 29 were false positives** -- every defect
+fixed in this tree came from reading around the findings rather than from a finding itself.
+
+## Open: flagged while triaging, each a separate change
+
+- **`server/sv_user.c:2459`** -- `VarBanMatch` converts a client's cvar reply with `atof`, so a
+  non-numeric reply compares equal to 0. A `=0` cvarban then matches innocent clients (and
+  `CVARBAN_BLACKHOLE` blackholes their IP), while `>N`/`<N` rules are evaded by replying with any
+  non-numeric string. The empty-string half is deliberate -- MH commented out the guard and annotated
+  it "empty string = 0" -- but the non-numeric half is a different case. Fixing it is a policy
+  decision about what a numeric ban operator should do with unparseable input.
+- **`server/sv_user.c:1642, 1647, 1799`** -- `atoi(...) * 1366` and `atoi(...) << 10` are computed
+  *before* the range test, so a client sending a huge number causes signed overflow. The wrapped
+  value is still range-checked, so there is no out-of-bounds access, but the overflow is UB on a
+  network-driven path.
+- **`server/sv_ccmds.c:84`** -- `char num[128]` filled by an unbounded `num[j++] = *s++`; `sv addip`
+  with 128+ digits smashes the stack. Console/rcon only.
+- **`qcommon/cvar.c:461`** -- `int h, m;` passed to `sscanf` `%u`. Harmless today because the string
+  is re-parsed and range-checked as unsigned, but it is a type mismatch.
+- **`server/sv_ccmds.c:344`** -- `qCopyFile` ignores `fwrite`'s return, so a full disk silently
+  truncates a savegame copy while the read side does check `ferror`.
 
 Run it with the pinned Clang, against a compile database:
 
