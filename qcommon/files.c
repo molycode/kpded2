@@ -977,7 +977,8 @@ int EXPORT FS_LoadFile (const char *path, void /*@out@*/ /*@null@*/**buffer)
 
 	if (!len)
 	{
-		fclose (h);
+		if (closeHandle)
+			fclose (h);
 		Com_Printf ("WARNING: 0 byte file: %s\n", LOG_GENERAL|LOG_WARNING, path);
 		*buffer = CopyString ("", TAGMALLOC_FSLOADFILE);
 		return 0;
