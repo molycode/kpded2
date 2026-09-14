@@ -342,7 +342,11 @@ static void qCopyFile (char *src, char *dst)
 			break;
 		}
 
-		fwrite (buffer, 1, l, f2);
+		if (fwrite (buffer, 1, l, f2) != l)
+		{
+			Com_Printf ("WARNING: qCopyFile: fwrite() failed, %s is truncated.\n", LOG_GENERAL|LOG_WARNING, dst);
+			break;
+		}
 	}
 
 	fclose (f1);
