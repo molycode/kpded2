@@ -154,8 +154,9 @@ static qboolean ValidateIPMask (char *ip, netadr_t *from, int *outmask)
 			Com_Printf ("Invalid IP mask.\n", LOG_GENERAL);
 			return false;
 		}
+		// 0 would reach CalcMask's 32-bit shift by 32, and matches every address.
 		mask = atoi (s);
-		if (mask < 0 || mask > 32)
+		if (mask < 1 || mask > 32)
 		{
 			Com_Printf ("Invalid IP mask.\n", LOG_GENERAL);
 			return false;
