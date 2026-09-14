@@ -1962,10 +1962,7 @@ static void SVC_RemoteCommand (void)
 	for (j = 0; j < maxclients->intvalue; j++)
 		if (svs.clients[j].state == cs_spawned && NET_CompareAdr(&net_from, &svs.clients[j].netchan.remote_address))
 			break;
-	// A 32 byte buffer here silently truncated every reply line past 31 characters, newline
-	// included, so in-game rcon ran whole listings together into one wrapped blob. svc_print
-	// costs 3 bytes and sv_rcon_buffsize is clamped to SV_OUTPUTBUF_LENGTH, which is
-	// MAX_MSGLEN-16 - headroom enough for that, so both paths can share the one size.
+	// A smaller buffer for the client path silently truncated every reply line past its size.
 	Com_BeginRedirect(j < maxclients->intvalue ? RD_CLIENTNUM | j : RD_PACKET, sv_outputbuf, sv_rcon_buffsize->intvalue, SV_FlushRedirect);
 
 	if (!i)

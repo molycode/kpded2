@@ -1665,10 +1665,6 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 
 /*
 ** FS_ListPakFiles
-**
-** A pak's own directory, in the shape FS_ListFiles returns so FS_Dir_f can print and free
-** both the same way. Keys are whole quake paths, so the pattern's directory has to match
-** exactly - otherwise "dir" would walk the entire archive instead of listing one directory.
 */
 static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, int *numfiles)
 {
@@ -1686,7 +1682,7 @@ static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, in
 	if (!pack->rb || pack->numfiles <= 0)
 		return NULL;
 
-	// Keys were lowercased by fast_strlwr when the pak loaded, and wildcardfit is case sensitive.
+	// Pak keys are lowercased at load time and wildcardfit is case sensitive.
 	Q_strncpy (pattern, wildcard, sizeof(pattern)-1);
 	fast_strlwr (pattern);
 
@@ -1703,8 +1699,7 @@ static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, in
 	}
 	dirlen = strlen (dir);
 
-	// Sys_FindFirst rewrites this on the disk side (q_shlinux.c), so both halves of "dir"
-	// have to agree on what the default pattern means.
+	// Sys_FindFirst rewrites this on the disk side, so both halves of "dir" must agree.
 	if (!strcmp (base, "*.*"))
 		strcpy (base, "*");
 
@@ -1725,7 +1720,7 @@ static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, in
 		else
 			keybase = key;
 
-		// wildcardfit only walks its arguments, so casting away const is safe.
+		// wildcardfit only walks its arguments, so the cast is safe.
 		if (keydirlen == dirlen && !strncmp (key, dir, dirlen) && wildcardfit (base, (char *)keybase))
 			list[nfiles++] = strdup (key);
 	}
@@ -1943,8 +1938,7 @@ static int EXPORT maplistcmp (const void *a, const void *b)
 	maplistentry_t const	*mb = (maplistentry_t const *)b;
 	int						d = strcmp (ma->name, mb->name);
 
-	// qsort is not stable, so searchpath order has to live in the key itself: the first
-	// searchpath to supply a name holds the copy FS_FOpenFile would actually open.
+	// qsort is not stable, so searchpath order has to live in the key itself.
 	if (d == 0)
 		d = ma->seq - mb->seq;
 
@@ -1954,9 +1948,7 @@ static int EXPORT maplistcmp (const void *a, const void *b)
 /*
 ** FS_ValidPattern
 **
-** wildcardfit walks an unterminated '[' straight off the end of the buffer, and its
-** asterisk() recursion backtracks with no depth bound, so a pattern arriving from rcon has
-** to be checked before it is handed over.
+** wildcardfit runs off an unterminated '[' and backtracks unbounded on '*'.
 */
 static qboolean FS_ValidPattern (char const *pattern)
 {
@@ -2025,10 +2017,7 @@ static void FS_MapListAdd (maplistentry_t **list, int *nmaps, int *maxmaps, char
 /*
 ** FS_MapCycleFile
 **
-** Mirrors MapCycleNext in the game library. Both cvars belong to the game library and
-** neither exists before it loads, so an absent teamplay is reported rather than guessed -
-** Cvar_IntValue would read 0 and quietly name maps.lst on a teamplay server. Never Cvar_Get
-** them: creating g_mapcycle_file here would stop gi.cvar applying the mod's own default.
+** Never Cvar_Get these - it would stop gi.cvar applying the game library's own default.
 */
 static char const /*@null@*/ *FS_MapCycleFile (void)
 {
@@ -2073,7 +2062,6 @@ static void FS_MapList_f (void)
 		Q_strncpy (filter, Cmd_Argv(1), sizeof(filter)-1);
 		fast_strlwr (filter);
 
-		// A bare word is far more useful as a prefix than as an exact name.
 		if (!strpbrk (filter, "*?[") && strlen (filter) < sizeof(filter)-2)
 			strcat (filter, "*");
 
@@ -2137,7 +2125,6 @@ static void FS_MapList_f (void)
 
 	qsort (list, (size_t)nmaps, sizeof(list[0]), maplistcmp);
 
-	// Collapse duplicates; the lowest seq survives, which is the copy that would load.
 	for (i = 0; i < nmaps; i++)
 	{
 		if (unique == 0 || strcmp (list[unique-1].name, list[i].name))
@@ -2153,15 +2140,13 @@ static void FS_MapList_f (void)
 
 		Com_sprintf (cyclepath, sizeof(cyclepath), "%s/%s", FS_Gamedir(), cyclefile);
 
-		// Plain fopen, as MapCycleNext does: a maps.lst inside a pak is one the mod could
-		// never open, so reporting it would describe a rotation that never runs.
+		// Plain fopen, as MapCycleNext does: a packed maps.lst is one the mod could never open.
 		f = fopen (cyclepath, "rb");
 		if (f)
 		{
 			char	entry[MAX_QPATH];
 			char	fmt[16];
 
-			// A field width is what keeps an over-long name inside the buffer.
 			Com_sprintf (fmt, sizeof(fmt), "%%%ds", (int)sizeof(entry) - 1);
 
 			while (fscanf (f, fmt, entry) == 1)
@@ -2169,7 +2154,7 @@ static void FS_MapList_f (void)
 				qboolean	found = false;
 				int			ch = 0;
 
-				// MapCycleNext matches with Q_stricmp, so both sides go to lower case here.
+				// MapCycleNext matches with Q_stricmp, so both sides go to lower case.
 				fast_strlwr (entry);
 
 				for (i = 0; i < unique; i++)
@@ -2189,7 +2174,6 @@ static void FS_MapList_f (void)
 					lines++;
 				}
 
-				// Only the first token is the map name; the rest of the line is its title.
 				while (ch != '\n' && ch != EOF)
 					ch = fgetc (f);
 			}
@@ -2247,7 +2231,6 @@ void FS_InitFilesystem (void)
 	Cmd_AddCommand ("link", FS_Link_f);
 	Cmd_AddCommand ("dir", FS_Dir_f );
 
-	//list every map on the searchpath, with its source and rotation membership
 	Cmd_AddCommand ("maplist", FS_MapList_f);
 
 	//r1: search for a file
