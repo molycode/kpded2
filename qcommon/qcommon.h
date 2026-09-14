@@ -814,7 +814,7 @@ NET
 
 // net.h -- quake's interface to the networking layer
 
-#define	PORT_ANY	-1
+#define	PORT_ANY	(-1)
 
 #if KINGPIN
 #define	MAX_MSGLEN		1400	// max length of a message
@@ -1139,7 +1139,7 @@ void 		Com_Quit (void);
 //r1: why the hell does inline never work on MSVC...
 extern	int	server_state;
 
-#define	Com_SetServerState(state) (server_state = state)
+#define	Com_SetServerState(state) (server_state = (state))
 #define	Com_ServerState()	(server_state)
 
 uint32	Com_BlockChecksum (void *buffer, int length);

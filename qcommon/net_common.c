@@ -22,7 +22,7 @@ int NET_IPSocket (char *net_interface, int port);
 #define closesocket close
 #define ioctlsocket ioctl
 #define SOCKET unsigned int
-#define INVALID_SOCKET -1
+#define INVALID_SOCKET (-1)
 #endif
 
 int _true = 1;
@@ -45,8 +45,8 @@ void NET_Common_Init (void)
 
 #define SockadrToNetadr(s,a) \
 	a->type = NA_IP; \
-	*(int *)&a->ip = ((struct sockaddr_in *)s)->sin_addr.s_addr; \
-	a->port = ((struct sockaddr_in *)s)->sin_port; \
+	*(int *)&(a)->ip = ((struct sockaddr_in *)(s))->sin_addr.s_addr; \
+	(a)->port = ((struct sockaddr_in *)(s))->sin_port; \
 
 qboolean	NET_StringToSockaddr (const char *s, struct sockaddr *sadr)
 {

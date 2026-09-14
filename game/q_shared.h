@@ -202,8 +202,8 @@ typedef enum {false, true}	qboolean;
 
 // MH: these seem fine with GCC/Linux too
 #if 1//def _WIN32
-#define FLOAT2INTCAST(f)(*((int32 *)(&f)))
-#define FLOAT2UINTCAST(f)(*((uint32 *)(&f)))
+#define FLOAT2INTCAST(f)(*((int32 *)(&(f))))
+#define FLOAT2UINTCAST(f)(*((uint32 *)(&(f))))
 #define FLOAT_LT_ZERO(f) (FLOAT2UINTCAST(f) > 0x80000000U)
 #define FLOAT_LE_ZERO(f) (FLOAT2INTCAST(f) <= 0)
 #define FLOAT_GT_ZERO(f) (FLOAT2INTCAST(f) > 0)
@@ -334,7 +334,7 @@ extern vec3_t vec3_origin;
 
 #define	nanmask (255<<23)
 
-#define	IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
+#define	IS_NAN(x) (((*(int *)&(x))&nanmask)==nanmask)
 
 // microsoft's fabs seems to be ungodly slow...
 //float Q_fabs (float f);
@@ -363,36 +363,36 @@ typedef union
 	float	f[3];
 } vectorhack_t;
 
-#define DotProduct(x,y)			(x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
-#define VectorSubtract(a,b,c)	(c[0]=a[0]-b[0],c[1]=a[1]-b[1],c[2]=a[2]-b[2])
-#define VectorAdd(a,b,c)		(c[0]=a[0]+b[0],c[1]=a[1]+b[1],c[2]=a[2]+b[2])
-#define VectorCopy(src,dst)		(dst[0]=src[0],dst[1]=src[1],dst[2]=src[2])
+#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
+#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
+#define VectorAdd(a,b,c)		((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
+#define VectorCopy(src,dst)		((dst)[0]=(src)[0],(dst)[1]=(src)[1],(dst)[2]=(src)[2])
 #define FastVectorCopy(src,dst)		*(vectorhack_t *)&(dst) = *(vectorhack_t *)&(src)
 //#define VectorClear(a)			(a[0]=a[1]=a[2]=0)
 //#define VectorClear(a)			(memset ((&a), 0, sizeof((a))))
 #define VectorClear(a)			*(int *)&(a)[0] = 0, *(int *)&(a)[1] = 0, *(int *)&(a)[2] = 0
-#define VectorNegate(a,b)		(b[0]=-a[0],b[1]=-a[1],b[2]=-a[2])
-#define VectorSet(v, x, y, z)	(v[0]=(x), v[1]=(y), v[2]=(z))
+#define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
+#define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5f,(o)[1]=((a)[1]+(b)[1])*0.5f,(o)[2]=((a)[2]+(b)[2])*0.5f)
 
 //r1: macorize
-#define VectorCompare(v1,v2)	(v1[0]==v2[0] && v1[1]==v2[1] && v1[2]== v2[2])
-#define CrossProduct(v1,v2,c)	(c[0]=v1[1]*v2[2]-v1[2]*v2[1],c[1]=v1[2]*v2[0]-v1[0]*v2[2],c[2]=v1[0]*v2[1]-v1[1]*v2[0])
-#define VectorInverse(v)		(v[0]=-v[0],v[1]=-v[1],v[2]=-v[2])
-#define VectorScale(in,s,out)	(out[0]=in[0]*(float)(s),out[1]=in[1]*(float)(s),out[2]=in[2]*(float)(s))
-#define VectorMA(a,s,b,c)		(c[0]=a[0]+(float)(s)*b[0],c[1]=a[1]+(float)(s)*b[1],c[2]=a[2]+(float)(s)*b[2])
-#define ClearBounds(mins,maxs)	(mins[0]=mins[1]=mins[2]=99999,maxs[0]=maxs[1]=maxs[2]=-99999)
+#define VectorCompare(v1,v2)	((v1)[0]==(v2)[0] && (v1)[1]==(v2)[1] && (v1)[2]== (v2)[2])
+#define CrossProduct(v1,v2,c)	((c)[0]=(v1)[1]*(v2)[2]-(v1)[2]*(v2)[1],(c)[1]=(v1)[2]*(v2)[0]-(v1)[0]*(v2)[2],(c)[2]=(v1)[0]*(v2)[1]-(v1)[1]*(v2)[0])
+#define VectorInverse(v)		((v)[0]=-(v)[0],(v)[1]=-(v)[1],(v)[2]=-(v)[2])
+#define VectorScale(in,s,out)	((out)[0]=(in)[0]*(float)(s),(out)[1]=(in)[1]*(float)(s),(out)[2]=(in)[2]*(float)(s))
+#define VectorMA(a,s,b,c)		((c)[0]=(a)[0]+(float)(s)*(b)[0],(c)[1]=(a)[1]+(float)(s)*(b)[1],(c)[2]=(a)[2]+(float)(s)*(b)[2])
+#define ClearBounds(mins,maxs)	((mins)[0]=(mins)[1]=(mins)[2]=99999,(maxs)[0]=(maxs)[1]=(maxs)[2]=-99999)
 
 //performs comparison on encoded byte differences - pointless sending 0.00 -> 0.01 if both end up as 0 on net.
 #define Vec_ByteCompare(v1,v2) \
-	((int)(v1[0]*4)==(int)(v2[0]*4) && \
-	(int)(v1[1]*4)==(int)(v2[1]*4) && \
-	(int)(v1[2]*4) == (int)(v2[2]*4))
+	((int)((v1)[0]*4)==(int)((v2)[0]*4) && \
+	(int)((v1)[1]*4)==(int)((v2)[1]*4) && \
+	(int)((v1)[2]*4) == (int)((v2)[2]*4))
 
 #define Vec_RoughCompare(v1,v2) \
-	(*(int *)&(v1[0])== *(int *)&(v2[0]) && \
-	*(int *)&(v1[1]) == *(int *)&(v2[1]) && \
-	*(int *)&(v1[2]) == *(int *)&(v2[2]))
+	(*(int *)&((v1)[0])== *(int *)&((v2)[0]) && \
+	*(int *)&((v1)[1]) == *(int *)&((v2)[1]) && \
+	*(int *)&((v1)[2]) == *(int *)&((v2)[2]))
 
 #define Float_ByteCompare(v1,v2) \
 	((int)((v1)*8)==((int)((v2)*8)))

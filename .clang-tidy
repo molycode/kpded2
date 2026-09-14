@@ -24,6 +24,8 @@ Checks: >
 
 # Our own sources. geoip/ is vendored and compiled with -w for the same reason.
 HeaderFilterRegex: '(qcommon|server|game)/'
+# redblack.h is Damian Ivereigh's LGPL tree, vendored into qcommon/ -- not ours to fix.
+ExcludeHeaderFilterRegex: 'redblack\.h'
 
 # bugprone-narrowing-conversions: Quake 2 moves between int and float constantly and by design.
 # bugprone-easily-swappable-parameters: every (x, y, z) and (min, max) triple trips it.

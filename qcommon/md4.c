@@ -40,7 +40,7 @@ static unsigned char PADDING[64] = {
 };
 
 /* F, G and H are basic MD4 functions. */
-#define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
+#define F(x, y, z) (((x) & (y)) | ((~(x)) & (z)))
 #define G(x, y, z) (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define H(x, y, z) ((x) ^ (y) ^ (z))
 

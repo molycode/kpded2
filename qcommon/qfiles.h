@@ -448,8 +448,8 @@ typedef struct
 	int32		contents;
 } dbrush_t;
 
-#define	ANGLE_UP	-1
-#define	ANGLE_DOWN	-2
+#define	ANGLE_UP	(-1)
+#define	ANGLE_DOWN	(-2)
 
 
 // the visibility lump consists of a header with a count, then

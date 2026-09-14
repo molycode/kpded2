@@ -67,11 +67,9 @@ measurements are in the commit that fixed it.
 in it is a check measured firing in the dozens or hundreds on code that is correct as written, and
 each carries its reason in the file.
 
-What a pass would face, measured on `server/sv_user.c` and `qcommon/common.c`:
+`bugprone-macro-parentheses` is DONE and the check is clean; the rest is untriaged. A tree-wide run
+is 288 unique findings over 26 checks. What it faces:
 
-- `bugprone-macro-parentheses`, 107. All in headers, so the same finding repeats for every translation
-  unit including them. Run tree-wide with `run-clang-tidy`, which deduplicates. Left on despite the
-  volume because unparenthesised macro parameters are a real defect class in C.
 - `bugprone-unchecked-string-to-number-conversion`, 21. `atoi` on cvar and network input. Quake 2
   leans on atoi returning 0 for a bad value, so most of these are likely correct by design - but that
   has to be shown rather than assumed, which is why the check is not pre-excluded.
@@ -82,6 +80,16 @@ What a pass would face, measured on `server/sv_user.c` and `qcommon/common.c`:
 Run it with the pinned Clang, against a compile database:
 
     /media/thomas/data/compilers/clang_22/bin/clang-tidy -p build/clang_22-RelWithDebInfo server/<file>.c
+
+Tree-wide, which is the only way the header findings deduplicate:
+
+    run-clang-tidy -clang-tidy-binary /media/thomas/data/compilers/clang_22/bin/clang-tidy \
+      -p build/clang_22-RelWithDebInfo -quiet -j 8 '/(qcommon|server|game|linux)/'
+
+`-clang-tidy-binary` is required - `run-clang-tidy` looks on PATH and in the build dir, and finds
+neither. When counting findings, resolve each path with `realpath` first: the same header arrives
+under several spellings (`qcommon/../game/q_shared.h` and so on), so a naive key inflates the count
+several-fold.
 
 Treat it like the -Wsign-compare pass: triage every finding into real or false, fix the real ones in
 their own commits, and disable a check only once its findings are shown to be false, with the reason

@@ -642,9 +642,9 @@ static void SV_EmitPacketEntities (client_t *cl, const client_frame_t /*@null@*/
 
 #define Vec_RangeCap(x,minv,maxv) \
 do { \
-	if ((x)[0] > (maxv)) (x)[0] = (maxv); else if ((x)[0] < (minv)) x[0] = (minv); \
-	if ((x)[1] > (maxv)) (x)[1] = (maxv); else if ((x)[1] < (minv)) x[1] = (minv); \
-	if ((x)[2] > (maxv)) (x)[2] = (maxv); else if ((x)[2] < (minv)) x[2] = (minv); \
+	if ((x)[0] > (maxv)) (x)[0] = (maxv); else if ((x)[0] < (minv)) (x)[0] = (minv); \
+	if ((x)[1] > (maxv)) (x)[1] = (maxv); else if ((x)[1] < (minv)) (x)[1] = (minv); \
+	if ((x)[2] > (maxv)) (x)[2] = (maxv); else if ((x)[2] < (minv)) (x)[2] = (minv); \
 } while(0)
 
 /*
