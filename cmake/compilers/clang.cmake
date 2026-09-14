@@ -1,6 +1,5 @@
 add_library(KpdCompileFlags INTERFACE)
 target_compile_options(KpdCompileFlags INTERFACE
-	-g
 	-Wall
 	-Wextra
 	-Werror

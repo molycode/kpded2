@@ -6,12 +6,7 @@ project(Kpded2 VERSION 2.2.0 LANGUAGES C)
 if(PROJECT_IS_TOP_LEVEL)
 	set(CMAKE_C_STANDARD 11)
 	set(CMAKE_C_STANDARD_REQUIRED ON)
-	set(CMAKE_CONFIGURATION_TYPES Debug Release)
-
-	# Release takes CMake's -O3 -DNDEBUG as-is. Debug's default -g is cleared because
-	# cmake/compilers/ already adds it for both configurations, and Release needs it: the stripped
-	# ship/ copy only symbolises against the unstripped binary beside it.
-	set(CMAKE_C_FLAGS_DEBUG "")
+	set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 endif()
 
 if(NOT COMMAND KpdApplyCompileFlags)
@@ -94,7 +89,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_options(Kpded2 PRIVATE "-Wl,--no-as-needed")
 	target_link_options(Kpded2 PRIVATE "-Wl,--no-undefined" "-Wl,--gc-sections")
 
-	# The stripped ship/ copy keeps this id, so a crash there symbolises against the build beside it.
+	# R1Q2 stamps this id into crash reports, so it must be present even if the linker defaults it off.
 	target_link_options(Kpded2 PRIVATE "-Wl,--build-id=sha1")
 endif()
 
@@ -143,17 +138,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set_source_files_properties(qcommon/crc.c qcommon/ioapi.c qcommon/unzip.c
 		DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		PROPERTIES COMPILE_OPTIONS "/w")
-endif()
-
-# Only GCC produces a ship/ artifact: a Clang build is a diagnostic second opinion, never the
-# released server. The stripped copy keeps the built one's build id, so a crash in the shipped binary
-# symbolises against the symbols left beside it.
-if(CMAKE_BUILD_TYPE STREQUAL "Release" AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
-	set(KPD_SHIP_DIR "$<TARGET_FILE_DIR:Kpded2>/ship")
-	add_custom_command(TARGET Kpded2 POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E make_directory "${KPD_SHIP_DIR}"
-		COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Kpded2>" "${KPD_SHIP_DIR}/$<TARGET_FILE_NAME:Kpded2>"
-		COMMAND ${CMAKE_STRIP} --strip-all "${KPD_SHIP_DIR}/$<TARGET_FILE_NAME:Kpded2>"
-		COMMENT "Stripping the shipping server into ship/"
-		VERBATIM)
 endif()

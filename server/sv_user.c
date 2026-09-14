@@ -2568,7 +2568,7 @@ static void SV_CvarResult_f (void)
 	{
 		if (sv_client->state == cs_spawning)
 		{
-			char *d;
+			char *d = NULL;
 			int rate;
 			sv_client->cl_maxfps = atoi(result);
 			if (!sv_client->cl_maxfps)

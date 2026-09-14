@@ -47,6 +47,24 @@
 			}
 		},
 		{
+			"name": "linux-gcc-relwithdebinfo",
+			"inherits": "base",
+			"displayName": "linux_gcc_relwithdebinfo",
+			"description": "Optimised build with symbols, using GCC (uses KPD_GCC_PATH or system GCC)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/gcc-RelWithDebInfo",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/gcc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
 			"name": "linux-clang-debug",
 			"inherits": "base",
 			"displayName": "linux_clang_debug",
@@ -78,6 +96,24 @@
 			"binaryDir": "${sourceDir}/build/clang-Release",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/clang.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"inherits": "base",
+			"displayName": "linux_clang_relwithdebinfo",
+			"description": "Optimised build with symbols, using Clang (uses KPD_CLANG_PATH or system Clang)",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/clang-RelWithDebInfo",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
 				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/linux/clang.cmake",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
 			}
@@ -123,6 +159,27 @@
 				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/windows/msvc.cmake",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
 			}
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"inherits": "base",
+			"displayName": "windows_msvc_relwithdebinfo",
+			"description": "Optimised build with symbols, using MSVC",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+			"generator": "Visual Studio 17 2022",
+			"architecture": {
+				"value": "Win32"
+			},
+			"binaryDir": "${sourceDir}/build/msvc-RelWithDebInfo",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/windows/msvc.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
 		}
 	],
 	"buildPresets": [
@@ -138,6 +195,15 @@
 		{
 			"name": "linux-gcc-release",
 			"configurePreset": "linux-gcc-release",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-gcc-relwithdebinfo",
+			"configurePreset": "linux-gcc-relwithdebinfo",
 			"condition": {
 				"type": "equals",
 				"lhs": "${hostSystemName}",
@@ -163,6 +229,15 @@
 			}
 		},
 		{
+			"name": "linux-clang-relwithdebinfo",
+			"configurePreset": "linux-clang-relwithdebinfo",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
 			"name": "windows-msvc-debug",
 			"configurePreset": "windows-msvc-debug",
 			"condition": {
@@ -174,6 +249,15 @@
 		{
 			"name": "windows-msvc-release",
 			"configurePreset": "windows-msvc-release",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"configurePreset": "windows-msvc-relwithdebinfo",
 			"condition": {
 				"type": "equals",
 				"lhs": "${hostSystemName}",

@@ -104,7 +104,8 @@ void _Q_assert (char *expression, char *function, uint32 line)
 void AngleVectors (vec3_t angles, vec3_t /*@out@*//*@null@*/ forward, vec3_t /*@out@*//*@null@*/right, vec3_t /*@out@*//*@null@*/up)
 {
 	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
+	// GCC at -O2 cannot correlate the `right || up` guard below with the later `right` / `up` reads.
+	float		sr = 0.0f, sp, sy, cr = 0.0f, cp, cy;
 
 	angle = angles[YAW] * M_PI2_DIV_360;
 	sy = (float)sin(angle);

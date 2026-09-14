@@ -82,8 +82,17 @@ cmake --preset linux-gcc-release -DZLIB_ROOT=/opt/zlib-i386
 `-fPIC` is not optional there - the server links as a position-independent executable.
 
 GCC is what ships. A Clang build is a diagnostic second opinion and is much noisier - see `todo.md`.
-A GCC Release build also writes a stripped copy to `build/<preset>/ship/kpded2`, carrying the same
-GNU build id as the unstripped binary beside it, so a crash in the shipped server still symbolises.
+A GCC Release build is the artifact to ship, straight out of `build/<preset>/kpded2` - there is no
+separate stripped copy, because Release never generates debug info in the first place.
+
+| configuration | flags |
+|---|---|
+| `Debug` | `-O0 -g` |
+| `RelWithDebInfo` | `-O2 -g -DNDEBUG` |
+| `Release` | `-O3 -DNDEBUG` |
+
+Reach for `RelWithDebInfo` when a bug needs hunting: it is optimised, so it fails the way the
+shipped build fails. Note it builds at **`-O2`**, which warns about things `-O3` does not.
 
 > Changing anything in `cmake/toolchains/` requires deleting `build/` first. `CMAKE_C_FLAGS_INIT`
 > only seeds the cache on a build tree's **first** configure, so an existing tree silently keeps the
