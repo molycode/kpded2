@@ -2178,6 +2178,10 @@ void *Z_Realloc (void *ptr, int size)
 #endif		
 		z_bytes, z_count);
 
+	// realloc may have moved the block, so relink it: both neighbours still point at the old address.
+	z->prev->next = z;
+	z->next->prev = z;
+
 	z_bytes += size - z->size;
 	z->size = size;
 
