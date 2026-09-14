@@ -458,7 +458,7 @@ static cvar_t *Cvar_Set2 (const char *var_name, const char *value, qboolean forc
 		char *at = strrchr(value, '@');
 		if (at && !strchr(at, ' '))
 		{
-			unsigned h, m;
+			unsigned int h, m;
 			if (sscanf(at + 1, "%u:%u", &h, &m) == 2 && h <= 23 && m <= 59)
 			{
 				Cmd_ExecuteString(va("setstarttime %s\n", at + 1));
