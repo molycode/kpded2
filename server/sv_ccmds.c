@@ -705,6 +705,7 @@ static void SV_GameMap_f (void)
 
 	// archive server state
 	strncpy (svs.mapcmd, map, sizeof(svs.mapcmd)-1);
+	svs.mapcmd[sizeof(svs.mapcmd)-1] = 0;
 
 	// copy off the level to the autosave slot
 	if (!dedicated->intvalue && !Cvar_IntValue ("deathmatch"))
