@@ -1172,6 +1172,8 @@ static int EXPORT filecmp (const void *a, const void *b)
    return strcmp (*(char**)a, *(char**)b);
 }
 
+#define MAX_NUMBERED_PAKS 1024
+
 static void FS_LoadPaks (const char *dir, const char *ext)
 {
 	int				i;
@@ -1184,7 +1186,7 @@ static void FS_LoadPaks (const char *dir, const char *ext)
 	char			*s;
 
 	char			*filenames[4096];
-	int				pakfiles[1024];
+	int				pakfiles[MAX_NUMBERED_PAKS];
 
 	pack_t			*pak;
 	searchpath_t	*search;
@@ -1206,7 +1208,20 @@ static void FS_LoadPaks (const char *dir, const char *ext)
 			{
 				if (!Q_strncasecmp (s, pakmatch, pakmatchlen))
 				{
-					pakfiles[totalpaks++] = atoi(s+pakmatchlen);
+					// The path is rebuilt from this number below, so a name that is not
+					// pak<digits> would silently load pak0 in its place.
+					char const	*digits = s + pakmatchlen;
+					int			ndigits = 0;
+
+					while (digits[ndigits] >= '0' && digits[ndigits] <= '9')
+						ndigits++;
+
+					if (ndigits == 0 || digits[ndigits] != '.')
+						Com_Printf ("WARNING: ignoring %s, only numbered pak files are loaded\n", LOG_GENERAL|LOG_WARNING, s);
+					else if (totalpaks == MAX_NUMBERED_PAKS)
+						Com_Printf ("WARNING: more than %d pak files in %s, ignoring %s\n", LOG_GENERAL|LOG_WARNING, MAX_NUMBERED_PAKS, dir, s);
+					else
+						pakfiles[totalpaks++] = atoi (digits);
 				}
 #if !KINGPIN
 				else
