@@ -1637,14 +1637,32 @@ void SV_NextPushDownload_f (void)
 			sv_client->downloadtokens -= (sv_client->patched >= 4 ? 1.333f : 1);
 		}
 
-		if (sv_client->patched >= 4)
 		{
-			offset = atoi(Cmd_Argv(n)) * 1366;
-			if (!sv_client->downloadcache)
-				offset += sv_client->downloadoffset;
+			// The count is ranged before it is scaled. Scaling first overflows the signed offset
+			// for a large enough argument, and the wrapped result can still pass the test below.
+			int blocks = atoi(Cmd_Argv(n));
+
+			if (blocks < 0)
+				return;
+
+			if (sv_client->patched >= 4)
+			{
+				if (blocks > sv_client->downloadsize / 1366)
+					return;
+
+				offset = blocks * 1366;
+				if (!sv_client->downloadcache)
+					offset += sv_client->downloadoffset;
+			}
+			else
+			{
+				if (blocks > (sv_client->downloadsize >> 10))
+					return;
+
+				offset = blocks << 10;
+			}
 		}
-		else
-			offset = atoi(Cmd_Argv(n)) << 10;
+
 		if (offset < 0 || offset >= sv_client->downloadsize)
 			return;
 
@@ -1796,7 +1814,15 @@ static void SV_BeginDownload_f(void)
 
 	sv_client->downloadid = atoi(Cmd_Argv(fileargc + 1));
 	if (Cmd_Argc() > fileargc + 2)
-		offset = atoi(Cmd_Argv(fileargc + 2)) << 10; // downloaded offset
+	{
+		// downloaded offset, in 1024-byte blocks; ranged before scaling so it cannot overflow
+		int blocks = atoi(Cmd_Argv(fileargc + 2));
+
+		if (blocks < 0 || blocks >= (1 << 21))
+			goto invalid;
+
+		offset = blocks << 10;
+	}
 #else
 	if (Cmd_Argc() > 2)
 		offset = atoi(Cmd_Argv(2)); // downloaded offset
