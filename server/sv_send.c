@@ -847,7 +847,12 @@ void EXPORT SV_StartSound (vec3_t origin, edict_t *entity, int channel,
 		if (client->nocurse)
 		{
 			const char *path = sv.configstrings[CS_SOUNDS + soundindex];
-			if (((!strncmp(path, "actors/male/", 12) || !strncmp(path, "actors/female/", 14)) && strchr(path + 14, '/')) || !strncmp(path, "actors/player/male/profanity/", 29))
+			const char *rest = NULL;
+			if (!strncmp(path, "actors/male/", 12))
+				rest = path + 12;
+			else if (!strncmp(path, "actors/female/", 14))
+				rest = path + 14;
+			if ((rest && strchr(rest, '/')) || !strncmp(path, "actors/player/male/profanity/", 29))
 				continue;
 		}
 #endif
