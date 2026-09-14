@@ -1581,6 +1581,7 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 {
 	char *s;
 	int nfiles = 0;
+	int maxfiles;
 	char **list = 0;
 
 	s = Sys_FindFirst( findname, musthave, canthave );
@@ -1596,14 +1597,14 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 		return NULL;
 
 	nfiles++; // add space for a guard
-	*numfiles = nfiles;
+	maxfiles = nfiles;
 
 	list = malloc( sizeof( char * ) * nfiles );
 	memset( list, 0, sizeof( char * ) * nfiles );
 
 	s = Sys_FindFirst( findname, musthave, canthave );
 	nfiles = 0;
-	while ( s )
+	while ( s && nfiles < maxfiles - 1 )
 	{
 		if ( s[strlen(s)-1] != '.' )
 		{
@@ -1616,6 +1617,8 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 		s = Sys_FindNext( musthave, canthave );
 	}
 	Sys_FindClose ();
+
+	*numfiles = nfiles + 1;
 
 	return list;
 }
