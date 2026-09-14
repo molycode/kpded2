@@ -67,8 +67,11 @@ measurements are in the commit that fixed it.
 in it is a check measured firing in the dozens or hundreds on code that is correct as written, and
 each carries its reason in the file.
 
-`bugprone-macro-parentheses` is DONE and the check is clean; the rest is untriaged. A tree-wide run
-is 288 unique findings over 26 checks. What it faces:
+`bugprone-macro-parentheses` is DONE and the check is clean. **The memory-safety class is DONE too**
+(2026-09-14): 29 findings triaged, 28 of them false positives. The three real defects fixed came out
+of reading around the findings rather than from the findings themselves -- the Z_Realloc zone chain,
+FS_LoadFile's pak handle, and FS_ListFiles' two sweeps. A tree-wide run is now **168 unique findings
+over 24 checks**. What is left:
 
 - `bugprone-unchecked-string-to-number-conversion`, 21. `atoi` on cvar and network input. Quake 2
   leans on atoi returning 0 for a bad value, so most of these are likely correct by design - but that
