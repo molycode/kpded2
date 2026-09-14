@@ -822,7 +822,7 @@ NET
 #define	MAX_MSGLEN		4096		// udp fragmentation isn't so bad these days
 #endif
 #define	PACKET_HEADER	10			// two ints and a short
-#define	MAX_USABLEMSG	MAX_MSGLEN - PACKET_HEADER
+#define	MAX_USABLEMSG	(MAX_MSGLEN - PACKET_HEADER)
 
 typedef enum {NA_LOOPBACK, NA_BROADCAST, NA_IP} netadrtype_t;
 
