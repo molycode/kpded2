@@ -569,6 +569,22 @@ void FS_WhereIs_f (void)
 }
 
 /*
+==============
+FS_HasUpper
+
+Whether a requested name carries a spelling the disk may not.
+==============
+*/
+static qboolean FS_HasUpper (const char *s)
+{
+	for (; *s; s++)
+		if (*s >= 'A' && *s <= 'Z')
+			return true;
+
+	return false;
+}
+
+/*
 ===========
 FS_FOpenFile
 
@@ -810,6 +826,15 @@ int EXPORT FS_FOpenFile (const char *filename, FILE **file, handlestyle_t openHa
 			// check a file in the directory tree
 			
 			Com_sprintf (netpath, sizeof(netpath), "%s/%s",search->filename, filename);
+
+			// A client asks for the spelling its own BSP carries, which on a case-sensitive
+			// filesystem need not be the spelling on disk -- the texture names embedded in a map
+			// are the one channel that never passes through the lowercasing the index functions
+			// do. Retry lowercased so a server whose tree is all lowercase can still answer
+			// instead of refusing the download. Only for a request that actually has upper case,
+			// so the ordinary path costs a string scan and no extra stat.
+			if (FS_HasUpper (filename) && Sys_FileLength (netpath) == -1)
+				Com_sprintf (netpath, sizeof(netpath), "%s/%s", search->filename, lowered);
 
 			if (openHandle == HANDLE_NONE)
 			{
