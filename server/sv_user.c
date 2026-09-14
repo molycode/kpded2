@@ -2412,6 +2412,32 @@ static void CvarBanDrop (const char *match, const banmatch_t *ban, const char *r
 	SV_DropClient (sv_client, (ban->blockmethod == CVARBAN_BLACKHOLE) ? false : true);
 }
 
+// A numeric ban operator needs a numeric operand. atof maps any non-number to 0, so "=0" matched a
+// client that simply replied with a word -- and CVARBAN_BLACKHOLE then blackholed their address.
+// The empty reply stays 0 deliberately; only a non-empty non-number is treated as unmatchable.
+static qboolean VarBanNumeric (const char *s, float *out)
+{
+	char	*end;
+	float	v;
+
+	if (!s[0])
+	{
+		*out = 0;
+		return true;
+	}
+
+	v = (float)strtod (s, &end);
+
+	while (*end == ' ' || *end == '\t')
+		end++;
+
+	if (end == s || *end)
+		return false;
+
+	*out = v;
+	return true;
+}
+
 const banmatch_t *VarBanMatch (varban_t *bans, const char *var, const char *result)
 {
 	banmatch_t			*match;
@@ -2455,25 +2481,25 @@ const banmatch_t *VarBanMatch (varban_t *bans, const char *var, const char *resu
 
 				if (matchvalue[1])
 				{
-					float intresult, matchint;
-					intresult = (float)atof(result);
+					float intresult = 0, matchint = 0;
+					qboolean numeric;
 
-					matchint = (float)atof(matchvalue+1);
+					numeric = VarBanNumeric (result, &intresult) && VarBanNumeric (matchvalue+1, &matchint);
 
 					switch (matchvalue[0])
 					{
 						case '>':
-							if ((intresult > matchint) == not)
+							if (numeric && (intresult > matchint) == not)
 								return match;
 							continue;
 
 						case '<':
-							if ((intresult < matchint) == not)
+							if (numeric && (intresult < matchint) == not)
 								return match;
 							continue;
 						
 						case '=':
-							if ((intresult == matchint) == not)
+							if (numeric && (intresult == matchint) == not)
 								return match;
 							continue;
 						
