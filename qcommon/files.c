@@ -1934,17 +1934,25 @@ MAP LISTING
 
 typedef struct
 {
-	char		name[MAX_QPATH];
-	char		origin[MAX_QPATH];
-	int			seq;
-	qboolean	rotation;
+	char				name[MAX_QPATH];
+	// Borrowed from the searchpath, which outlives the command. NULL means loose on disk.
+	char const			*origin;
+	int					seq;
+	qboolean			rotation;
 } mapentry_t;
+
+typedef struct
+{
+	mapentry_t	*v;
+	int			n;
+	int			max;
+} maplist_t;
 
 static int EXPORT mapcmp (const void *a, const void *b)
 {
 	mapentry_t const	*ma = (mapentry_t const *)a;
 	mapentry_t const	*mb = (mapentry_t const *)b;
-	int						d = strcmp (ma->name, mb->name);
+	int					d = strcmp (ma->name, mb->name);
 
 	// qsort is not stable, so searchpath order has to live in the key itself.
 	if (d == 0)
@@ -1953,10 +1961,10 @@ static int EXPORT mapcmp (const void *a, const void *b)
 	return d;
 }
 
-static void FS_MapsAdd (mapentry_t **list, int *nmaps, int *maxmaps, char const *path, char const *origin)
+static void FS_MapsAdd (maplist_t *maps, char const *path, char const *origin)
 {
-	char const		*name;
-	char			*ext;
+	char const	*name;
+	char		*ext;
 	mapentry_t	*entry;
 
 	name = strrchr (path, '/');
@@ -1965,19 +1973,19 @@ static void FS_MapsAdd (mapentry_t **list, int *nmaps, int *maxmaps, char const 
 	else
 		name = path;
 
-	if (*nmaps == *maxmaps)
+	if (maps->n == maps->max)
 	{
-		*maxmaps = *maxmaps ? *maxmaps * 2 : 256;
-		*list = realloc (*list, sizeof(**list) * (size_t)*maxmaps);
-		if (!*list)
+		maps->max = maps->max ? maps->max * 2 : 256;
+		maps->v = realloc (maps->v, sizeof(*maps->v) * (size_t)maps->max);
+		if (!maps->v)
 			Com_Error (ERR_FATAL, "FS_MapsAdd: out of memory");
 	}
 
-	entry = &(*list)[*nmaps];
+	entry = &maps->v[maps->n];
 
 	Q_strncpy (entry->name, name, sizeof(entry->name)-1);
-	Q_strncpy (entry->origin, origin, sizeof(entry->origin)-1);
-	entry->seq = *nmaps;
+	entry->origin = origin;
+	entry->seq = maps->n;
 	entry->rotation = false;
 
 	ext = strrchr (entry->name, '.');
@@ -1986,7 +1994,7 @@ static void FS_MapsAdd (mapentry_t **list, int *nmaps, int *maxmaps, char const 
 
 	fast_strlwr (entry->name);
 
-	(*nmaps)++;
+	maps->n++;
 }
 
 /*
@@ -2015,9 +2023,7 @@ static char const /*@null@*/ *FS_MapCycleFile (void)
 static void FS_Maps_f (void)
 {
 	searchpath_t	*search;
-	mapentry_t	*list = NULL;
-	int				nmaps = 0;
-	int				maxmaps = 0;
+	maplist_t		maps = { NULL, 0, 0 };
 	int				unique = 0;
 	int				matched = 0;
 	int				shown = 0;
@@ -2065,7 +2071,7 @@ static void FS_Maps_f (void)
 
 				for (i = 0; i < npak-1; i++)
 				{
-					FS_MapsAdd (&list, &nmaps, &maxmaps, paknames[i], origin);
+					FS_MapsAdd (&maps, paknames[i], origin);
 					free (paknames[i]);
 				}
 				free (paknames);
@@ -2081,7 +2087,7 @@ static void FS_Maps_f (void)
 			s = Sys_FindFirst (findname, 0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
 			while (s)
 			{
-				FS_MapsAdd (&list, &nmaps, &maxmaps, s, "disk");
+				FS_MapsAdd (&maps, s, NULL);
 				s = Sys_FindNext (0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
 			}
 			Sys_FindClose ();
@@ -2092,18 +2098,18 @@ static void FS_Maps_f (void)
 		}
 	}
 
-	if (!nmaps)
+	if (!maps.n)
 	{
 		Com_Printf ("No maps found.\n", LOG_GENERAL);
 		return;
 	}
 
-	qsort (list, (size_t)nmaps, sizeof(list[0]), mapcmp);
+	qsort (maps.v, (size_t)maps.n, sizeof(maps.v[0]), mapcmp);
 
-	for (i = 0; i < nmaps; i++)
+	for (i = 0; i < maps.n; i++)
 	{
-		if (unique == 0 || strcmp (list[unique-1].name, list[i].name))
-			list[unique++] = list[i];
+		if (unique == 0 || strcmp (maps.v[unique-1].name, maps.v[i].name))
+			maps.v[unique++] = maps.v[i];
 	}
 
 	cyclefile = FS_MapCycleFile ();
@@ -2134,9 +2140,9 @@ static void FS_Maps_f (void)
 
 				for (i = 0; i < unique; i++)
 				{
-					if (!strcmp (list[i].name, entry))
+					if (!strcmp (maps.v[i].name, entry))
 					{
-						list[i].rotation = true;
+						maps.v[i].rotation = true;
 						found = true;
 						inrotation++;
 					}
@@ -2166,14 +2172,21 @@ static void FS_Maps_f (void)
 
 	for (i = 0; i < unique; i++)
 	{
-		if (!filtered || wildcardfit (filter, list[i].name))
+		if (!filtered || wildcardfit (filter, maps.v[i].name))
 		{
 			matched++;
 
 			if (lines < MAPS_MAX_LINES)
 			{
-				Com_Printf ("%-32s %-12s%s\n", LOG_GENERAL, list[i].name, list[i].origin,
-					list[i].rotation ? " [rotation]" : "");
+				char	from[MAX_QPATH + 8];
+
+				if (maps.v[i].origin)
+					Com_sprintf (from, sizeof(from), "  (%s)", maps.v[i].origin);
+				else
+					from[0] = 0;
+
+				Com_Printf ("%s%s%s\n", LOG_GENERAL, maps.v[i].name, from,
+					maps.v[i].rotation ? "  [rotation]" : "");
 				lines++;
 				shown++;
 			}
@@ -2190,7 +2203,7 @@ static void FS_Maps_f (void)
 	if (matched > shown)
 		Com_Printf ("%d more not shown - narrow the filter.\n", LOG_GENERAL, matched - shown);
 
-	free (list);
+	free (maps.v);
 }
 
 /*
