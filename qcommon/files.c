@@ -1930,7 +1930,7 @@ MAP LISTING
 ==============================================================================
 */
 
-#define MAPLIST_MAX_LINES	200
+#define MAPS_MAX_LINES	200
 
 typedef struct
 {
@@ -1938,12 +1938,12 @@ typedef struct
 	char		origin[MAX_QPATH];
 	int			seq;
 	qboolean	rotation;
-} maplistentry_t;
+} mapentry_t;
 
-static int EXPORT maplistcmp (const void *a, const void *b)
+static int EXPORT mapcmp (const void *a, const void *b)
 {
-	maplistentry_t const	*ma = (maplistentry_t const *)a;
-	maplistentry_t const	*mb = (maplistentry_t const *)b;
+	mapentry_t const	*ma = (mapentry_t const *)a;
+	mapentry_t const	*mb = (mapentry_t const *)b;
 	int						d = strcmp (ma->name, mb->name);
 
 	// qsort is not stable, so searchpath order has to live in the key itself.
@@ -1953,11 +1953,11 @@ static int EXPORT maplistcmp (const void *a, const void *b)
 	return d;
 }
 
-static void FS_MapListAdd (maplistentry_t **list, int *nmaps, int *maxmaps, char const *path, char const *origin)
+static void FS_MapsAdd (mapentry_t **list, int *nmaps, int *maxmaps, char const *path, char const *origin)
 {
 	char const		*name;
 	char			*ext;
-	maplistentry_t	*entry;
+	mapentry_t	*entry;
 
 	name = strrchr (path, '/');
 	if (name)
@@ -1970,7 +1970,7 @@ static void FS_MapListAdd (maplistentry_t **list, int *nmaps, int *maxmaps, char
 		*maxmaps = *maxmaps ? *maxmaps * 2 : 256;
 		*list = realloc (*list, sizeof(**list) * (size_t)*maxmaps);
 		if (!*list)
-			Com_Error (ERR_FATAL, "FS_MapListAdd: out of memory");
+			Com_Error (ERR_FATAL, "FS_MapsAdd: out of memory");
 	}
 
 	entry = &(*list)[*nmaps];
@@ -2010,12 +2010,12 @@ static char const /*@null@*/ *FS_MapCycleFile (void)
 }
 
 /*
-** FS_MapList_f
+** FS_Maps_f
 */
-static void FS_MapList_f (void)
+static void FS_Maps_f (void)
 {
 	searchpath_t	*search;
-	maplistentry_t	*list = NULL;
+	mapentry_t	*list = NULL;
 	int				nmaps = 0;
 	int				maxmaps = 0;
 	int				unique = 0;
@@ -2065,7 +2065,7 @@ static void FS_MapList_f (void)
 
 				for (i = 0; i < npak-1; i++)
 				{
-					FS_MapListAdd (&list, &nmaps, &maxmaps, paknames[i], origin);
+					FS_MapsAdd (&list, &nmaps, &maxmaps, paknames[i], origin);
 					free (paknames[i]);
 				}
 				free (paknames);
@@ -2081,7 +2081,7 @@ static void FS_MapList_f (void)
 			s = Sys_FindFirst (findname, 0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
 			while (s)
 			{
-				FS_MapListAdd (&list, &nmaps, &maxmaps, s, "disk");
+				FS_MapsAdd (&list, &nmaps, &maxmaps, s, "disk");
 				s = Sys_FindNext (0, SFF_SUBDIR | SFF_HIDDEN | SFF_SYSTEM);
 			}
 			Sys_FindClose ();
@@ -2098,7 +2098,7 @@ static void FS_MapList_f (void)
 		return;
 	}
 
-	qsort (list, (size_t)nmaps, sizeof(list[0]), maplistcmp);
+	qsort (list, (size_t)nmaps, sizeof(list[0]), mapcmp);
 
 	for (i = 0; i < nmaps; i++)
 	{
@@ -2142,7 +2142,7 @@ static void FS_MapList_f (void)
 					}
 				}
 
-				if (!found && lines < MAPLIST_MAX_LINES)
+				if (!found && lines < MAPS_MAX_LINES)
 				{
 					Com_Printf ("! %s: %s is in the rotation but not installed\n",
 						LOG_GENERAL|LOG_WARNING, cyclefile, entry);
@@ -2170,7 +2170,7 @@ static void FS_MapList_f (void)
 		{
 			matched++;
 
-			if (lines < MAPLIST_MAX_LINES)
+			if (lines < MAPS_MAX_LINES)
 			{
 				Com_Printf ("%-32s %-12s%s\n", LOG_GENERAL, list[i].name, list[i].origin,
 					list[i].rotation ? " [rotation]" : "");
@@ -2206,7 +2206,7 @@ void FS_InitFilesystem (void)
 	Cmd_AddCommand ("link", FS_Link_f);
 	Cmd_AddCommand ("dir", FS_Dir_f );
 
-	Cmd_AddCommand ("maplist", FS_MapList_f);
+	Cmd_AddCommand ("maps", FS_Maps_f);
 
 	//r1: search for a file
 	Cmd_AddCommand ("whereis", FS_WhereIs_f);
