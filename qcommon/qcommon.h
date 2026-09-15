@@ -721,7 +721,6 @@ void	Cmd_ForwardToServer (void);
 // things like godmode, noclip, etc, are commands directed to the server,
 // so when they are typed in at the console, they will need to be forwarded.
 
-void Cmd_ExecTrigger (char *string);
 
 /*
 ==============================================================
@@ -1187,7 +1186,6 @@ enum tagmalloc_tags_e
 	TAGMALLOC_CMD,
 	TAGMALLOC_LOADMAP,
 	TAGMALLOC_ALIAS,
-	TAGMALLOC_TRIGGER,
 	TAGMALLOC_CVAR,
 	TAGMALLOC_FSCACHE,
 	TAGMALLOC_FSLOADFILE,
