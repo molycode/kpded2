@@ -55,9 +55,20 @@ typedef struct
 	uint32			refcount;
 } fshandle_t;
 
+#define	PACKFILE_NAMELEN	56		// the on-disk name field, which is not terminated when full
+
+// The directory entry exactly as it sits in the file. Never used as a C string: a name that
+// fills the field has no terminator, so reading one would run into the next entry.
 typedef struct
 {
-	char			name[56];
+	char			name[PACKFILE_NAMELEN];
+	uint32			filepos;
+	uint32			filelen;
+} dpackfile_t;
+
+typedef struct
+{
+	char			name[PACKFILE_NAMELEN + 1];
 	uint32			filepos;
 	uint32			filelen;
 } packfile_t;
@@ -1049,6 +1060,7 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 	void			**newitem;
 	pack_t			*pack = NULL;
 	packfile_t		*info;
+	dpackfile_t		*dinfo;
 
 	if (!strcmp (ext, "pak"))
 	{
@@ -1077,10 +1089,10 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 		header.dirlen = LittleLong (header.dirlen);
 	#endif
 
-		if (header.dirlen % sizeof(packfile_t))
-			Com_Error (ERR_FATAL, "FS_LoadPackFile: Bad pak file %s (directory length %u is not a multiple of %d)", packfile, header.dirlen, (int)sizeof(packfile_t));
+		if (header.dirlen % sizeof(dpackfile_t))
+			Com_Error (ERR_FATAL, "FS_LoadPackFile: Bad pak file %s (directory length %u is not a multiple of %d)", packfile, header.dirlen, (int)sizeof(dpackfile_t));
 
-		numpackfiles = header.dirlen / sizeof(packfile_t);
+		numpackfiles = header.dirlen / sizeof(dpackfile_t);
 
 		if (numpackfiles > MAX_FILES_IN_PACK)
 			//Com_Error (ERR_FATAL, "FS_LoadPackFile: packfile %s has %i files (max allowed %d)", packfile, numpackfiles, MAX_FILES_IN_PACK);
@@ -1093,13 +1105,13 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 			return NULL;
 		}
 
-		//newfiles = Z_TagMalloc (numpackfiles * sizeof(packfile_t), TAGMALLOC_FSLOADPAK);
 		info = Z_TagMalloc (numpackfiles * sizeof(packfile_t), TAGMALLOC_FSLOADPAK);
+		dinfo = Z_TagMalloc (numpackfiles * sizeof(dpackfile_t), TAGMALLOC_FSLOADPAK);
 
 		if (fseek (packhandle, header.dirofs, SEEK_SET))
 			Com_Error (ERR_FATAL, "FS_LoadPackFile: fseek() to offset %u in %s failed. Pak file is possibly corrupt.", header.dirofs, packfile);
 
-		if (fread (info, 1, header.dirlen, packhandle) != header.dirlen)
+		if (fread (dinfo, 1, header.dirlen, packhandle) != header.dirlen)
 			Com_Error (ERR_FATAL, "FS_LoadPackFile: Error reading packfile directory from %s (failed to read %u bytes at %u). Pak file is possibly corrupt.", packfile, header.dirofs, header.dirlen);
 
 		pack = Z_TagMalloc (sizeof (pack_t), TAGMALLOC_FSLOADPAK);
@@ -1110,6 +1122,11 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 
 		for (i=0 ; i<numpackfiles ; i++)
 		{
+			memcpy (info[i].name, dinfo[i].name, sizeof(dinfo[i].name));
+			info[i].name[sizeof(dinfo[i].name)] = 0;
+			info[i].filepos = dinfo[i].filepos;
+			info[i].filelen = dinfo[i].filelen;
+
 			fast_strlwr (info[i].name);
 #if YOU_HAVE_A_BROKEN_COMPUTER
 			info[i].filepos = LittleLong(info[i].filepos);
@@ -1121,6 +1138,8 @@ static pack_t /*@null@*/ *FS_LoadPackFile (const char *packfile, const char *ext
 			newitem = rbsearch (info[i].name, pack->rb);
 			*newitem = &info[i];
 		}
+
+		Z_Free (dinfo);
 
 		Q_strncpy (pack->filename, packfile, sizeof(pack->filename)-1);
 
