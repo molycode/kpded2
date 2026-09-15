@@ -778,6 +778,12 @@ static void Cmd_Trigger_f( void )
 		return;
 	}
 
+	if (!Com_ValidWildcard (match))
+	{
+		Com_Printf ("Bad match: under %d characters, balanced [ ], at most 4 *.\n", LOG_GENERAL, MAX_QPATH);
+		return;
+	}
+
 	//!!!!!!! FIXME HACK XXXXXXXX maniac you are insane
 	trigger = Z_TagMalloc( sizeof( cmd_trigger_t ) + cmdLen + matchLen, TAGMALLOC_TRIGGER);
 	trigger->command = (char *)((byte *)trigger + sizeof( cmd_trigger_t ));

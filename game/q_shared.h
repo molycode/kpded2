@@ -475,6 +475,7 @@ int Com_sprintf (char /*@out@*/*dest, int size, const char *fmt, ...) __attribut
 void Com_PageInMemory (byte *buffer, int size);
 
 int wildcardfit (char *wildcard, char *test);
+qboolean Com_ValidWildcard (char const *pattern);
 /* this function implements the UN*X wildcards and returns  */
 /* 0  if *wildcard does not match *test                     */
 /* 1  if *wildcard matches *test                            */

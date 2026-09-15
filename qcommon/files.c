@@ -1664,39 +1664,6 @@ char /*@null@*/ **FS_ListFiles( char *findname, int *numfiles, uint32 musthave, 
 }
 
 /*
-** FS_ValidPattern
-**
-** wildcardfit runs off an unterminated '[' and backtracks unbounded on '*'.
-*/
-static qboolean FS_ValidPattern (char const *pattern)
-{
-	qboolean	valid = (qboolean)(strlen (pattern) < MAX_QPATH);
-	int			nstars = 0;
-	char const	*p;
-
-	for (p = pattern; valid && *p; p++)
-	{
-		if (*p == '*')
-		{
-			nstars++;
-			if (nstars > 4)
-				valid = false;
-		}
-		else if (*p == '[')
-		{
-			char const	*close = strchr (p, ']');
-
-			if (close)
-				p = close;
-			else
-				valid = false;
-		}
-	}
-
-	return valid;
-}
-
-/*
 ** FS_ListPakFiles
 */
 static char /*@null@*/ **FS_ListPakFiles (pack_t *pack, char const *wildcard, int *numfiles)
@@ -1794,7 +1761,7 @@ static void FS_Dir_f( void )
 			*tmp = '/';
 	}
 
-	if ( !FS_ValidPattern( wildcard ) )
+	if ( !Com_ValidWildcard( wildcard ) )
 	{
 		Com_Printf( "Bad pattern: under %d characters, balanced [ ], at most 4 *.\n", LOG_GENERAL, MAX_QPATH );
 		return;
@@ -2073,7 +2040,7 @@ static void FS_MapList_f (void)
 		if (!strpbrk (filter, "*?[") && strlen (filter) < sizeof(filter)-2)
 			strcat (filter, "*");
 
-		badfilter = (qboolean)!FS_ValidPattern (filter);
+		badfilter = (qboolean)!Com_ValidWildcard (filter);
 	}
 
 	if (badfilter)

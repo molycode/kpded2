@@ -1809,3 +1809,37 @@ int asterisk (char **wildcard, char **test)
       return (fit);
     }
 }
+
+/*
+** Com_ValidWildcard
+**
+** Bounds what reaches wildcardfit: it backtracks unbounded on '*'.
+*/
+qboolean Com_ValidWildcard (char const *pattern)
+{
+	qboolean	valid = (qboolean)(strlen (pattern) < MAX_QPATH);
+	int			nstars = 0;
+	char const	*p;
+
+	for (p = pattern; valid && *p; p++)
+	{
+		if (*p == '*')
+		{
+			nstars++;
+			if (nstars > 4)
+				valid = false;
+		}
+		else if (*p == '[')
+		{
+			char const	*close = strchr (p, ']');
+
+			if (close)
+				p = close;
+			else
+				valid = false;
+		}
+	}
+
+	return valid;
+}
+
