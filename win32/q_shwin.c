@@ -302,6 +302,13 @@ char *Sys_FindFirst (char *path, uint32 musthave, uint32 canthave )
 	if (findhandle != INVALID_HANDLE_VALUE)
 		Sys_Error ("Sys_BeginFind without close");
 
+	// Refused rather than truncated: a shortened path would search, and report, another directory.
+	if (strlen(path) >= sizeof(findbase))
+	{
+		Com_Printf ("WARNING: Sys_FindFirst: path too long, not searched: %s\n", LOG_WARNING, path);
+		return NULL;
+	}
+
 	COM_FilePath (path, findbase);
 	findhandle = FindFirstFile (path, &findinfo);
 
