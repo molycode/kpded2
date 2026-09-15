@@ -178,12 +178,18 @@ char *Sys_FindFirst (char *path, unsigned int musthave, unsigned int canhave)
 	if (fdir)
 		Sys_Error ("Sys_BeginFind without close");
 
-//	COM_FilePath (path, findbase);
-	strcpy(findbase, path);
+	// Refused rather than truncated: a shortened path would search, and report, another directory.
+	if (strlen(path) >= sizeof(findbase))
+	{
+		Com_Printf ("WARNING: Sys_FindFirst: path too long, not searched: %s\n", LOG_WARNING, path);
+		return NULL;
+	}
+
+	Q_strncpy (findbase, path, sizeof(findbase) - 1);
 
 	if ((p = strrchr(findbase, '/')) != NULL) {
 		*p = 0;
-		strcpy(findpattern, p + 1);
+		Q_strncpy (findpattern, p + 1, sizeof(findpattern) - 1);
 	} else
 		strcpy(findpattern, "*");
 

@@ -1820,8 +1820,7 @@ static void FS_Dir_f( void )
 
 		if ( search->pack )
 			dirnames = FS_ListPakFiles( search->pack, wildcard, &ndirs );
-		// Sys_FindFirst strcpy()s this into a MAX_OSPATH buffer with no bound of its own.
-		else if ( strlen( findname ) < MAX_OSPATH )
+		else
 			dirnames = FS_ListFiles( findname, &ndirs, 0, 0 );
 
 		if ( dirnames != 0 )
@@ -2105,7 +2104,7 @@ static void FS_MapList_f (void)
 				free (paknames);
 			}
 		}
-		// Sys_FindFirst strcpy()s this into a MAX_OSPATH buffer with no bound of its own.
+		// A truncated compose would be short enough to search, and would search the wrong path.
 		else if (strlen (search->filename) + sizeof("/maps/*.bsp") <= sizeof(findname))
 		{
 			char	*s;
