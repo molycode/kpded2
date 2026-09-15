@@ -803,6 +803,11 @@ qboolean EXPORT  PF_inPVS (vec3_t p1, vec3_t p2)
 	leafnum = CM_PointLeafnum (p2);
 	cluster = CM_LeafCluster (leafnum);
 	area2 = CM_LeafArea (leafnum);
+
+	// -1 means p2 is in solid; returning false matches p1, whose zeroed row fails the test below.
+	if (cluster == -1)
+		return false;
+
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;
 	if (!CM_AreasConnected (area1, area2))
@@ -833,6 +838,10 @@ qboolean EXPORT PF_inPHS (vec3_t p1, vec3_t p2)
 	leafnum = CM_PointLeafnum (p2);
 	cluster = CM_LeafCluster (leafnum);
 	area2 = CM_LeafArea (leafnum);
+
+	// -1 means p2 is in solid; returning false matches p1, whose zeroed row fails the test below.
+	if (cluster == -1)
+		return false;
 
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return false;		// more than one bounce away
