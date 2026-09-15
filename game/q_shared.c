@@ -1679,6 +1679,18 @@ int wildcardfit (char *wildcard, char *test)
         {
         case '[':
 	  wildcard++; /* leave out the opening square bracket */ 
+	  /* set() scans for the ']' with no end test, so an unterminated one runs off the pattern. */
+	  /* A leading '!' negates and a ']' straight after it is a member, so look past both. */
+	  {
+	    char *close = wildcard;
+
+	    if ('!' == *close)
+	      close++;
+	    if (']' == *close)
+	      close++;
+	    if (NULL == strchr (close, ']'))
+	      return 0;
+	  }
           fit = set (&wildcard, &test);
 	  /* we don't need to decrement the wildcard as in case */
 	  /* of asterisk because the closing ] is still there */
