@@ -76,6 +76,44 @@ as falling through.
 Notable: of the 29 analyzer memory-safety findings, **all 29 were false positives** -- every defect
 fixed in this tree came from reading around the findings rather than from a finding itself.
 
+## Give a server a message of the day
+
+A player connected to the live server on 2026-09-16, typed `motd`, got nothing, and left a minute
+later. The word arrived as chat -- kp-mod's `ClientCommand` ends in
+`else Cmd_Say_f (ent, false, true)`, so any unrecognised command becomes a say -- which is why the
+journal shows `:G()^T: motd`. A server describing itself to the people joining it is generally
+worth having, so this should not stay an accident of what nobody implemented.
+
+What already exists, and it is more than it first looks:
+
+- **kpded2 inherits R1Q2's `sv_connectmessage`** (`sv_main.c:3714`, sent at `:1774`). It is
+  `Netchan_OutOfBandPrint (... "print\n%s\n" ...)` at connect, it runs `ExpandNewLines` so `\n`
+  in the cvar becomes real line breaks, and it refuses a string within 16 bytes of `MAX_USABLEMSG`.
+  It defaults to `""`, which is the only reason nobody sees one.
+- The send sits behind `if (reconnected)`, which is true for everyone while `sv_force_reconnect` is
+  empty -- so the default path does fire. Confirm that before relying on it.
+- **kp-mod has no motd of any kind.**
+
+So there are two separate things here, and they should not be confused:
+
+1. **A connect-time message needs no code at all** -- `set sv_connectmessage "..."` in a server's
+   `server.cfg` would have answered this player. Doing that for our own servers is a config change.
+2. **An on-demand `motd` command does not exist anywhere**, and that is what was actually typed.
+   It would be new code, in one of two places: kpded2's `ucmds[]` table (`sv_user.c`), which
+   answers for every mod and needs no game library change; or kp-mod's `ClientCommand`, which only
+   helps servers running our library but can print through `gi.cprintf` and reuse the existing
+   flood protection.
+
+Undecided, and worth deciding before writing anything: whether a **default** message ships in the
+code -- Thomas's point was that even a basic self-description is of interest, which argues for a
+non-empty default rather than leaving every operator to discover the cvar. Against: this is a fork
+with an upstream PR parked, and a behaviour default is a heavier thing to carry than a bug fix.
+The narrower version is to ship the default in the *config we deploy* and leave the code alone.
+
+What would settle it: set `sv_connectmessage` on the live server, connect, and see whether the
+text arrives and reads well at that point in the handshake -- before anyone writes a `motd` command
+that may turn out to be unnecessary.
+
 ## Done 2026-09-14: the smaller items flagged during triage
 
 All cleared, one commit each:
