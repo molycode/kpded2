@@ -1240,7 +1240,11 @@ void SV_ClientBegin (client_t *cl)
 	}
 
 	// call the game begin function
-	ge->ClientBegin (cl->edict);
+	// A picture or cinematic has no level and no game entities: SV_New_f only sets up
+	// cl->edict for ss_game, so handing the game library the stale one makes it try to
+	// spawn a player into a level that was never loaded, and Kingpin's does gi.error.
+	if (sv.state == ss_game)
+		ge->ClientBegin (cl->edict);
 
 	//give them some movement
 
