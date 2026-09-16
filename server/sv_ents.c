@@ -2008,9 +2008,13 @@ void SV_BuildClientFrame (client_t *client)
 			state = svs.client_entities + slot;
 			e = state->number;
 			ent = EDICT_NUM(e);
-			// not removing players or invisible entities. SVF_DEADMONSTER is no proof of a corpse:
-			// a live co-op player carries it while passing through a spawn overlap.
-			if (parts > 70 && !ent->client && (state->modelindex || state->num_parts))
+			// not removing live players or invisible entities. Ask the player state rather than
+			// SVF_DEADMONSTER, which is no proof of a corpse: a live co-op player carries it while
+			// passing through a spawn overlap.
+			if (parts > 70
+				&& (!ent->client || ent->client->ps.pmove.pm_type == PM_DEAD
+									|| ent->client->ps.pmove.pm_type == PM_GIB)
+				&& (state->modelindex || state->num_parts))
 			{
 				vec3_t d;
 				vec_t s = (ent->size[0] > ent->size[1] ? ent->size[0] : ent->size[1]);
