@@ -888,7 +888,7 @@ SV_Map
   map [*]<map>$<startspot>+<nextserver>
 
 command from the console or progs.
-Map can also be a.cin, .pcx, or .dm2 file
+Map can also be a .cin, .pcx, .tga, or .dm2 file
 Nextserver is used to allow a cinematic to play, then proceed to
 another level:
 
@@ -1017,6 +1017,22 @@ void SV_Map (qboolean attractloop, const char *levelstring, qboolean loadgame)
 		SV_BroadcastCommand ("changing\n");
 		SV_SpawnServer (level, spawnpoint, ss_pic, attractloop, loadgame);
 	}
+#if KINGPIN
+	// Kingpin's full-screen cards are TGA where Quake 2's were PCX, and the retail engine
+	// dispatches on both. Without this they fall through as ordinary map names, so idiot's
+	// chapter card and kpcut7's end credits ask for maps/<name>.tga.bsp and the campaign
+	// cannot reach its ending on a dedicated server.
+	else if (l > 4 && !strcmp (level+l-4, ".tga") )
+	{
+		if (attractloop)
+			Com_Error (ERR_HARD, "Demomap may only be used to replay demos (*.dm2)");
+#ifndef DEDICATED_ONLY
+		SCR_BeginLoadingPlaque ();			// for local system
+#endif
+		SV_BroadcastCommand ("changing\n");
+		SV_SpawnServer (level, spawnpoint, ss_pic, attractloop, loadgame);
+	}
+#endif
 	else
 	{
 		if (attractloop)
