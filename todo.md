@@ -51,16 +51,6 @@ silences them with `/w`, so it is unaffected either way.
 server. If not, delete the three `q2ded2.*` files. If so, the vendored minizip needs refreshing to a
 version using `z_crc_t` before it builds with a current compiler.
 
-## Offer the i386 aggregate-return fix upstream
-
-`game/q_shared.h` carried `callee_pop_aggregate_return(0)`, which is the reverse of what the 1999
-binaries do and corrupts the stack of any game library calling a struct-returning import such as
-`gi.trace()`. It breaks every Linux kpded2 build against every Kingpin game library, retail
-included, so it is worth a pull request to MonkeyHarris rather than carrying privately. The
-measurements are in the commit that fixed it.
-
-**What would settle it:** Thomas's call on whether to open the PR.
-
 ## Triage the clang-tidy findings
 
 `.clang-tidy` is in place and tuned for this tree, but nothing has been triaged yet. Every exclusion
@@ -106,9 +96,10 @@ So there are two separate things here, and they should not be confused:
 
 Undecided, and worth deciding before writing anything: whether a **default** message ships in the
 code -- Thomas's point was that even a basic self-description is of interest, which argues for a
-non-empty default rather than leaving every operator to discover the cvar. Against: this is a fork
-with an upstream PR parked, and a behaviour default is a heavier thing to carry than a bug fix.
-The narrower version is to ship the default in the *config we deploy* and leave the code alone.
+non-empty default rather than leaving every operator to discover the cvar. The argument against
+used to be that a behaviour default is a heavy thing to carry in a fork with a PR parked upstream;
+that PR is off, so what remains against it is only that every server inherits our wording. The
+narrower version is still to ship the default in the *config we deploy* and leave the code alone.
 
 What would settle it: set `sv_connectmessage` on the live server, connect, and see whether the
 text arrives and reads well at that point in the handshake -- before anyone writes a `motd` command
