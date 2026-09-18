@@ -66,44 +66,32 @@ as falling through.
 Notable: of the 29 analyzer memory-safety findings, **all 29 were false positives** -- every defect
 fixed in this tree came from reading around the findings rather than from a finding itself.
 
-## Give a server a message of the day
+## Done 2026-09-18: the message of the day
 
-A player connected to the live server on 2026-09-16, typed `motd`, got nothing, and left a minute
-later. The word arrived as chat -- kp-mod's `ClientCommand` ends in
-`else Cmd_Say_f (ent, false, true)`, so any unrecognised command becomes a say -- which is why the
-journal shows `:G()^T: motd`. A server describing itself to the people joining it is generally
-worth having, so this should not stay an accident of what nobody implemented.
+Closed, and it did not land here. A player typed `motd` on 2026-09-16, got nothing and left; the
+word arrived as chat because kp-mod's `ClientCommand` ends in `Cmd_Say_f`.
 
-What already exists, and it is more than it first looks:
+Two halves, both now settled:
 
-- **kpded2 inherits R1Q2's `sv_connectmessage`** (`sv_main.c:3714`, sent at `:1774`). It is
-  `Netchan_OutOfBandPrint (... "print\n%s\n" ...)` at connect, it runs `ExpandNewLines` so `\n`
-  in the cvar becomes real line breaks, and it refuses a string within 16 bytes of `MAX_USABLEMSG`.
-  It defaults to `""`, which is the only reason nobody sees one.
-- The send sits behind `if (reconnected)`, which is true for everyone while `sv_force_reconnect` is
-  empty -- so the default path does fire. Confirm that before relying on it.
-- **kp-mod has no motd of any kind.**
+- **Connect-time.** kpded2 already inherits R1Q2's `sv_connectmessage` (`sv_main.c:3714`, sent at
+  `:1774`). It only ever defaulted to `""`, so this was a `server.cfg` line and no code. Set on both
+  live servers.
+- **On demand.** Built in **kp-mod**, not here. A `motd` command was written in this tree first and
+  then reverted: `ucmds[]` is walked *before* the game library and `return`s on a hit, so an engine
+  command would permanently shadow any MOTD a game library implements - including ours.
 
-So there are two separate things here, and they should not be confused:
+**Measured, and the reason it cannot live here:** the coloured text in Kingpin's screens comes from
+the layout language (`dmstr <rgb>`, three digits), and the client only draws a layout while the
+*game* sets `stats[STAT_LAYOUTS]`. An engine-sent layout draws nothing - probed against the retail
+client. A `svc_centerprint` does work from the engine, but only in white; setting bit 7 on the text
+selects the alternate charset, which Kingpin renders as bold rather than a second colour.
 
-1. **A connect-time message needs no code at all** -- `set sv_connectmessage "..."` in a server's
-   `server.cfg` would have answered this player. Doing that for our own servers is a config change.
-2. **An on-demand `motd` command does not exist anywhere**, and that is what was actually typed.
-   It would be new code, in one of two places: kpded2's `ucmds[]` table (`sv_user.c`), which
-   answers for every mod and needs no game library change; or kp-mod's `ClientCommand`, which only
-   helps servers running our library but can print through `gi.cprintf` and reuse the existing
-   flood protection.
+Two engine behaviours worth remembering, both found here:
 
-Undecided, and worth deciding before writing anything: whether a **default** message ships in the
-code -- Thomas's point was that even a basic self-description is of interest, which argues for a
-non-empty default rather than leaving every operator to discover the cvar. The argument against
-used to be that a behaviour default is a heavy thing to carry in a fork with a PR parked upstream;
-that PR is off, so what remains against it is only that every server inherits our wording. The
-narrower version is still to ship the default in the *config we deploy* and leave the code alone.
-
-What would settle it: set `sv_connectmessage` on the live server, connect, and see whether the
-text arrives and reads well at that point in the handshake -- before anyone writes a `motd` command
-that may turn out to be unnecessary.
+- **`SV_AddMessageSingle` drops duplicate layouts** - it caches `cl->layout` per client and discards
+  a byte-identical resend. A static screen therefore cannot be "refreshed"; the bagman team dialog
+  only survives its periodic re-send because its contents change every time.
+- **`+set` on the command line strips high-bit bytes**, while rcon and `server.cfg` preserve them.
 
 ## Done 2026-09-14: the smaller items flagged during triage
 
