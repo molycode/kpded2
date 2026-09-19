@@ -1151,7 +1151,7 @@ int MSG_ReadLong (sizebuf_t *msg_read)
 		c = msg_read->data[msg_read->readcount]
 		+ (msg_read->data[msg_read->readcount+1]<<8)
 		+ (msg_read->data[msg_read->readcount+2]<<16)
-		+ (msg_read->data[msg_read->readcount+3]<<24);
+		+ ((uint32)msg_read->data[msg_read->readcount+3]<<24);
 	
 	msg_read->readcount += 4;
 	

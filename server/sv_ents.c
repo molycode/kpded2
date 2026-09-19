@@ -1219,7 +1219,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 	statbits = 0;
 	for (i=0 ; i<MAX_STATS ; i++)
 		if (ps->stats[i] != ops->stats[i])
-			statbits |= 1<<i;
+			statbits |= 1u<<i;
 
 	if (!enhanced || statbits)
 		extraflags |= EPS_STATS;
@@ -1228,7 +1228,7 @@ static int SV_WritePlayerstateToClient (const client_frame_t /*@null@*/*from, cl
 	{
 		MSG_WriteLong (statbits);
 		for (i=0 ; i<MAX_STATS ; i++)
-			if (statbits & (1<<i) )
+			if (statbits & (1u<<i) )
 				MSG_WriteShort (ps->stats[i]);
 	}
 #ifndef NPROFILE

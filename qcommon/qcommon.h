@@ -592,7 +592,7 @@ enum clc_ops_e
 #define	U_NUMPARTS	(1<<28)
 #define	U_MODELPARTS (1<<29)
 #define	U_MODELLIGHT (1<<30)
-#define	U_SCALE		(1<<31)
+#define	U_SCALE		(1u<<31)
 #endif
 
 //#define	U_COPYOLD	(1<<29)
