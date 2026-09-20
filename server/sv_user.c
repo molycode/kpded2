@@ -344,41 +344,41 @@ plainStrings:
 #endif
 		while (start < MAX_CONFIGSTRINGS)
 		{
-			int cs = start;
+			const char *cs = sv.configstrings[start];
 #if KINGPIN
 			// MH: send downloadables in place of images
-			if (cs >= CS_IMAGES && cs < CS_IMAGES + MAX_IMAGES)
+			if (start >= CS_IMAGES && start < CS_IMAGES + MAX_IMAGES)
 			{
 recheckdl:
-				cs = MAX_CONFIGSTRINGS + nextdl;
-				nextdl++;
-				if (nextdl > MAX_IMAGES || !sv.configstrings[cs][0])
+				if (nextdl >= MAX_IMAGES || !sv.dlconfigstrings[nextdl][0])
 				{
 					start = CS_IMAGES + MAX_IMAGES;
 					continue;
 				}
+				cs = sv.dlconfigstrings[nextdl];
+				nextdl++;
 				// latest patch will request CS_SOUND files itself so don't send those again
-				if (sv_client->patched >= 9 && !strncmp(sv.configstrings[cs], "sound/", 6))
+				if (sv_client->patched >= 9 && !strncmp(cs, "sound/", 6))
 				{
 					int i;
 					for (i = 1; i < MAX_SOUNDS; i++)
 					{
 						if (!sv.configstrings[CS_SOUNDS + i][0])
 							break;
-						if (!strcmp(sv.configstrings[CS_SOUNDS + i], sv.configstrings[cs] + 6))
+						if (!strcmp(sv.configstrings[CS_SOUNDS + i], cs + 6))
 							goto recheckdl;
 					}
 				}
 			}
 #endif
-			if (sv.configstrings[cs][0])
+			if (cs[0])
 			{
-				len = (int)strlen(sv.configstrings[cs]);
+				len = (int)strlen(cs);
 				len = len > MAX_QPATH ? MAX_QPATH : len;
 
 				MSG_BeginWriting (svc_configstring);
 				MSG_WriteShort (start);
-				MSG_Write (sv.configstrings[cs], len);
+				MSG_Write (cs, len);
 				MSG_Write ("\0", 1);
 				// MH: count full message length
 				wrote += MSG_GetLength();
