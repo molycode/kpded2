@@ -1602,7 +1602,7 @@ gotnewcl:
 		}
 	}
 
-	if (previousclients >= sv_iplimit->intvalue * 2)
+	if (sv_iplimit->intvalue > 0 && previousclients >= sv_iplimit->intvalue * 2)
 	{
 		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nToo many connections from your host.\n");
 		Com_DPrintf ("    too many connections\n");
@@ -3735,7 +3735,7 @@ void SV_Init (void)
 
 	//r1: limit connections per ip address (stop zombie dos/flood)
 	sv_iplimit = Cvar_Get ("sv_iplimit", "3", 0);
-	sv_iplimit->help = "Maximum number of connections allowed from a single IP. Default 3.\n";
+	sv_iplimit->help = "Maximum number of connections allowed from a single IP, 0 for no limit. Default 3.\n";
 
 	//r1: message to send to connecting clients via CONNECTIONLESS print immediately
 	//    after client connects. \n is expanded to new line.
