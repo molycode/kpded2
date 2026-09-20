@@ -1169,6 +1169,7 @@ void SV_ClientBegin (client_t *cl)
 	cl->downloadsize = 0;
 
 	cl->state = cs_spawned;
+	sv.hadplayer = true;
 
 	// MH: write serverdata to client demo
 	if (cl->demofile)

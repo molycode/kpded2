@@ -233,6 +233,8 @@ cvar_t	*sv_no_zoom;
 cvar_t	*g_idle;
 cvar_t	*sv_autoidle;
 
+cvar_t	*sv_restartonempty;
+
 // MH: minimize memory usage
 cvar_t	*sv_minimize_memory;
 
@@ -3052,6 +3054,30 @@ static void SV_CheckAutoIdle (void)
 	Cvar_ForceSet("g_idle", "1");
 }
 
+// Respawn the current map once the last player leaves a co-op server
+static void SV_CheckRestartOnEmpty (void)
+{
+	int		i;
+	client_t	*cl;
+
+	if (!sv_restartonempty->intvalue || !sv.hadplayer || sv.state != ss_game || !Cvar_IntValue ("coop"))
+		return;
+
+	for (i=0,cl=svs.clients ; i<maxclients->intvalue ; i++,cl++)
+	{
+		if (cl->state)
+			return;
+	}
+
+	// Cleared before queueing: the buffer runs later, and this would re-fire every frame until it does
+	sv.hadplayer = false;
+
+	Com_Printf ("Server empty, respawning %s\n", LOG_SERVER, sv.name);
+
+	// '*' spawns clean without setting ss_dead: no library reload, so campaign progress survives
+	Cbuf_AddText (va("gamemap \"*%s\"\n", sv.name));
+}
+
 // MH: minimize memory usage when the server is empty
 static void SV_MinimizeMemory (void)
 {
@@ -3240,6 +3266,8 @@ void SV_Frame (int msec)
 
 	// clear teleport flags, etc for next frame
 	SV_PrepWorldFrame ();
+
+	SV_CheckRestartOnEmpty ();
 
 	// MH: check auto-idle mode
 	SV_CheckAutoIdle ();
@@ -4014,6 +4042,9 @@ void SV_Init (void)
 	// MH: automatically enable idle mode when the server is empty
 	sv_autoidle = Cvar_Get ("sv_autoidle", "0", 0);
 	sv_autoidle->help = "Suspend the game when the server is empty. Default 0.\n";
+
+	sv_restartonempty = Cvar_Get ("sv_restartonempty", "0", 0);
+	sv_restartonempty->help = "Respawn the current map when the last player leaves a co-op server. Default 0.\n";
 
 	// MH: minimize memory usage option
 	sv_minimize_memory = Cvar_Get ("sv_minimize_memory", "0", 0);

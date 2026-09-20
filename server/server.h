@@ -96,6 +96,7 @@ typedef struct
 
 	qboolean	attractloop;		// running cinematics and demos for the local system only
 	qboolean	loadgame;			// client begins should reuse existing entity
+	qboolean	hadplayer;			// someone played this level instance, so it is spent
 
 	uint32		time;				// always sv.framenum * 100 msec
 	int			framenum;
