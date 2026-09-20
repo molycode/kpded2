@@ -1063,7 +1063,7 @@ int32 LongSwap (int32 l)
 	b3 = (l>>16)&255;
 	b4 = (l>>24)&255;
 
-	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
+	return ((uint32)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 }
 
 #if Q_BIGENDIAN
