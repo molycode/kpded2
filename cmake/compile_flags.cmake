@@ -12,12 +12,12 @@ endif()
 # One option rather than raw flags in a preset: the toolchain owns CMAKE_C_FLAGS_INIT
 # (-m32 -mstackrealign, and -mstackrealign is mandatory here), and a preset that sets CMAKE_C_FLAGS
 # replaces it instead of adding to it.
-set(KPD_SANITIZER "none" CACHE STRING "Sanitizer to build with: none, address or undefined")
-set_property(CACHE KPD_SANITIZER PROPERTY STRINGS none address undefined)
+set(KPD_SANITIZER "none" CACHE STRING "Sanitizer to build with: none, address, undefined or address,undefined")
+set_property(CACHE KPD_SANITIZER PROPERTY STRINGS none address undefined address,undefined)
 
 if(NOT KPD_SANITIZER STREQUAL "none")
-	if(NOT KPD_SANITIZER MATCHES "^(address|undefined)$")
-		message(FATAL_ERROR "KPD_SANITIZER is '${KPD_SANITIZER}'; expected none, address or undefined")
+	if(NOT KPD_SANITIZER MATCHES "^(address|undefined|address,undefined)$")
+		message(FATAL_ERROR "KPD_SANITIZER is '${KPD_SANITIZER}'; expected none, address, undefined or address,undefined")
 	endif()
 
 	if(MSVC)
@@ -32,5 +32,13 @@ if(NOT KPD_SANITIZER STREQUAL "none")
 		$<$<C_COMPILER_ID:GNU>:-Wno-stringop-overread>
 		$<$<C_COMPILER_ID:GNU>:-Wno-format-overflow>)
 	target_link_options(KpdCompileFlags INTERFACE -fsanitize=${KPD_SANITIZER})
+
+	if(KPD_SANITIZER MATCHES "address")
+		# Address aborts on its first report where undefined recovers, and this one is the server:
+		# aborting takes the game down with it. Needs ASAN_OPTIONS=halt_on_error=0 to take effect.
+		target_compile_options(KpdCompileFlags INTERFACE -fsanitize-recover=address)
+		target_link_options(KpdCompileFlags INTERFACE -fsanitize-recover=address)
+	endif()
+
 	message(STATUS "Sanitizer enabled: ${KPD_SANITIZER}")
 endif()
