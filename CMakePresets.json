@@ -95,6 +95,21 @@
 			}
 		},
 		{
+			"name": "linux-gcc-asanubsan",
+			"inherits": "linux-gcc-relwithdebinfo",
+			"displayName": "linux_gcc_asanubsan",
+			"description": "Address and UndefinedBehaviorSanitizer together with GCC, on top of RelWithDebInfo",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"binaryDir": "${sourceDir}/build/gcc-asanubsan",
+			"cacheVariables": {
+				"KPD_SANITIZER": "address,undefined"
+			}
+		},
+		{
 			"name": "linux-clang-debug",
 			"inherits": "base",
 			"displayName": "linux_clang_debug",
@@ -252,6 +267,15 @@
 		{
 			"name": "linux-gcc-ubsan",
 			"configurePreset": "linux-gcc-ubsan",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-gcc-asanubsan",
+			"configurePreset": "linux-gcc-asanubsan",
 			"condition": {
 				"type": "equals",
 				"lhs": "${hostSystemName}",
