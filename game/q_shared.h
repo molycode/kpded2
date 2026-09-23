@@ -862,6 +862,9 @@ typedef struct
 //
 #define	BUTTON_ATTACK		1
 #define	BUTTON_USE			2
+#if KINGPIN
+#define	BUTTON_ACTIVATE		4
+#endif // KINGPIN
 
 //stolen for r1q2 in the name of bandwidth
 #define	BUTTON_UCMD_DBLFORWARD	4

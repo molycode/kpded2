@@ -3142,6 +3142,14 @@ static void SV_ExecuteUserCommand (char *s)
 		}
 	}
 
+#if KINGPIN
+	// Tracked ahead of the spawn gate so a release during a level change is not lost.
+	if (!strcmp(Cmd_Argv(0), "+activate"))
+		sv_client->activate_held = true;
+	else if (!strcmp(Cmd_Argv(0), "-activate"))
+		sv_client->activate_held = false;
+#endif // KINGPIN
+
 	//r1: do we really want to be passing commands from unconnected players
 	//to the game dll at this point? doesn't sound like a good idea to me
 	//especially if the game dll does its own banning functions after connect
@@ -3284,9 +3292,20 @@ static void SV_ClientThink (client_t *cl, usercmd_t *cmd)
 	qboolean	interpolate;
 
 #if KINGPIN
+	usercmd_t	activatecmd;
+
 	// MH: check if the patch skipped a packet and remove it from PL counter
 	if (cl->patched && (cmd->buttons & 64) && cl->netchan.in_dropped)
 		cl->netchan.in_dropped--;
+
+	// The 1999 client only sets this bit when its own process hosts the server, which pressed its
+	// key for it. A copy, because cmd is the base the next move's buttons are delta-decoded from.
+	if (cl->activate_held)
+	{
+		activatecmd = *cmd;
+		activatecmd.buttons |= BUTTON_ACTIVATE;
+		cmd = &activatecmd;
+	}
 #endif
 
 	cl->commandMsec -= cmd->msec;
