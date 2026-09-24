@@ -1547,6 +1547,10 @@ void SV_SendClientMessages (void)
 
 	SV_CheckForOverflow ();
 
+#if KINGPIN
+	PollCachedDownloads ();
+#endif
+
 	// read the next demo message if needed
 	if (sv.demofile && sv.state == ss_demo)
 	{
@@ -1620,7 +1624,7 @@ void SV_SendClientMessages (void)
 		{
 #if KINGPIN
 			// MH: begin sending if finished caching/compressing file for download
-			if (c->downloadcache && c->downloadcache->fd == -1 && c->downloadsize != c->downloadcache->compsize)
+			if (c->downloadcache && c->downloadsize != c->downloadcache->compsize && CachedDownloadReady(c->downloadcache))
 				PushDownload(c, true);
 #endif
 

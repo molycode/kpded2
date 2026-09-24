@@ -185,6 +185,8 @@ typedef struct download_t
 	int refc;
 	int fd;
 	intptr_t thread;
+	int comperr;		// set by the worker thread
+	qboolean finished;	// main thread only
 } download_t;
 #endif
 
@@ -720,6 +722,8 @@ void SV_CloseDownload(client_t *cl);
 
 #if KINGPIN
 void ClearCachedDownloads();
+qboolean CachedDownloadReady(download_t *d);
+void PollCachedDownloads(void);
 void PushDownload (client_t *cl, qboolean start);
 int GetDownloadRate();
 #endif

@@ -54,8 +54,6 @@ static void *CacheDownload(void *arg)
 
 	if (d->compbuf)
 	{
-		if (sv_compress_downloads->intvalue > Z_BEST_COMPRESSION)
-			Cvar_Set ("sv_compress_downloads", va("%d", Z_BEST_COMPRESSION));
 		memset(&zs, 0, sizeof(zs));
 		deflateInit2(&zs, sv_compress_downloads->intvalue, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
 		zs.next_out = d->compbuf;
@@ -85,8 +83,7 @@ static void *CacheDownload(void *arg)
 			}
 			if ((r = deflate(&zs, 0)) || !zs.avail_out)
 			{
-				if (r)
-					Com_Printf ("Download compression error (%d)\n", LOG_SERVER|LOG_DOWNLOAD|LOG_WARNING, r);
+				d->comperr = r;
 				break;
 			}
 		}
@@ -95,16 +92,7 @@ static void *CacheDownload(void *arg)
 	if (d->compbuf)
 	{
 		if (!c && deflate(&zs, Z_FINISH) == Z_STREAM_END)
-		{
 			d->compsize = zs.total_out;
-			d->compbuf = Z_Realloc(d->compbuf, d->compsize);
-			Com_Printf ("Compressed %s from %d to %d (%d%%)\n", LOG_SERVER|LOG_DOWNLOAD|LOG_NOTICE, d->name, d->size - d->offset, d->compsize, 100 * d->compsize / (d->size - d->offset));
-		}
-		else
-		{
-			Z_Free(d->compbuf);
-			d->compbuf = NULL;
-		}
 		deflateEnd(&zs);
 	}
 	close(d->fd);
@@ -112,12 +100,51 @@ static void *CacheDownload(void *arg)
 	return 0;
 }
 
+// Main thread only: the zone allocator and Com_Printf are not thread-safe, so the worker leaves this.
+qboolean CachedDownloadReady(download_t *d)
+{
+	if (d->fd != -1)
+		return false;
+
+	if (!d->finished)
+	{
+		d->finished = true;
+		if (d->compbuf && d->compsize)
+		{
+			d->compbuf = Z_Realloc(d->compbuf, d->compsize);
+			Com_Printf ("Compressed %s from %d to %d (%d%%)\n", LOG_SERVER|LOG_DOWNLOAD|LOG_NOTICE, d->name, d->size - d->offset, d->compsize, 100 * d->compsize / (d->size - d->offset));
+		}
+		else if (d->compbuf)
+		{
+			if (d->comperr)
+				Com_Printf ("Download compression error (%d)\n", LOG_SERVER|LOG_DOWNLOAD|LOG_WARNING, d->comperr);
+			Z_Free(d->compbuf);
+			d->compbuf = NULL;
+		}
+	}
+
+	return true;
+}
+
+// Once per frame, so a result is reported and its buffer shrunk even if no spawning client asks.
+void PollCachedDownloads(void)
+{
+	download_t *d;
+
+	for (d = downloads; d; d = d->next)
+		CachedDownloadReady(d);
+}
+
 download_t *NewCachedDownload(client_t *cl, qboolean compress)
 {
 	struct stat	s;
 	download_t *d = downloads;
 	if (compress)
+	{
 		fstat(fileno(cl->download), &s);
+		if (sv_compress_downloads->intvalue > Z_BEST_COMPRESSION)
+			Cvar_Set ("sv_compress_downloads", va("%d", Z_BEST_COMPRESSION));
+	}
 	while (d)
 	{
 		if (!strcmp(d->name, cl->downloadFileName))
@@ -140,6 +167,8 @@ download_t *NewCachedDownload(client_t *cl, qboolean compress)
 						d->size = cl->downloadsize;
 						d->mtime = s.st_mtime;
 						d->compsize = 0;
+						d->comperr = 0;
+						d->finished = false;
 						d->compbuf = Z_Realloc(d->compbuf, d->size - d->offset);
 						d->fd = dup(fileno(cl->download));
 						d->thread = Sys_StartThread(CacheDownload, d, -1);
@@ -2300,7 +2329,7 @@ fail:
 	if (!sv_client->downloadcache && sv_download_precache->intvalue && strncmp(name, "maps/", 5))
 		sv_client->downloadcache = NewCachedDownload(sv_client, false);
 	// MH: if not compressing/caching, begin sending the file immediately
-	if (!sv_client->downloadcache || sv_client->downloadcache->fd == -1)
+	if (!sv_client->downloadcache || CachedDownloadReady(sv_client->downloadcache))
 		PushDownload(sv_client, true);
 #else
 	SV_NextDownload_f ();
