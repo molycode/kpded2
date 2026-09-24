@@ -63,14 +63,14 @@ attribute through a function pointer, so every guard built on it reads as fallin
 29 analyzer memory-safety findings, all 29 were false; every defect fixed in this tree came from
 reading around the findings rather than from a finding itself.
 
-Run it with the pinned Clang, against the compile database that
-`cmake --preset linux-clang_22-relwithdebinfo` writes:
+Run it with the pinned Clang (`$KPD_CLANG_PATH`, the root your user presets pass), against the
+compile database that `cmake --preset linux-clang_22-relwithdebinfo` writes:
 
-    /media/thomas/data/compilers/clang_22/bin/clang-tidy -p build/clang_22-RelWithDebInfo server/<file>.c
+    $KPD_CLANG_PATH/bin/clang-tidy -p build/clang_22-RelWithDebInfo server/<file>.c
 
 Tree-wide, which is the only way the header findings deduplicate:
 
-    /media/thomas/data/compilers/clang_22/bin/run-clang-tidy -clang-tidy-binary /media/thomas/data/compilers/clang_22/bin/clang-tidy \
+    $KPD_CLANG_PATH/bin/run-clang-tidy -clang-tidy-binary $KPD_CLANG_PATH/bin/clang-tidy \
       -p build/clang_22-RelWithDebInfo -quiet -j 8 '/(qcommon|server|game|linux)/'
 
 Neither binary is on `PATH`, and `run-clang-tidy` needs `-clang-tidy-binary` even when called by its

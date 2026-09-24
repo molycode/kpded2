@@ -8,7 +8,7 @@ what a modern compiler rejects; `todo.md` records what is still parked.
 ## Lineage
 
 - Quake 2, id Software, released under the GPL v2 in 2001.
-- [R1Q2](https://github.com/r1ch/r1q2) by Richard "r1ch" Stanway, whose history this repository
+- [R1Q2](https://github.com/r1ch/r1q2) by r1ch, whose history this repository
   carries up to build `b8012` (2011).
 - kpded2 by MonkeyHarris, which strips R1Q2 to a dedicated server and adapts it to Kingpin.
 
