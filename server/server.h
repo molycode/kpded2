@@ -407,7 +407,7 @@ typedef struct
 
 	unsigned int	last_playerupdate;
 
-	int			last_heartbeat;
+	unsigned int	last_heartbeat;
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 
