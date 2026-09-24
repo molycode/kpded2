@@ -492,6 +492,8 @@ static void FS_AddToCache (uint32 hash, char *path, uint32 filelen, uint32 files
 }
 #endif
 
+static qboolean FS_HasUpper (const char *s);
+
 void FS_WhereIs_f (void)
 {
 	char			*filename;
@@ -566,6 +568,9 @@ void FS_WhereIs_f (void)
 			// check a file in the directory tree
 			
 			Com_sprintf (netpath, sizeof(netpath), "%s/%s",search->filename, filename);
+
+			if (FS_HasUpper (filename) && Sys_FileLength (netpath) == -1)
+				Com_sprintf (netpath, sizeof(netpath), "%s/%s", search->filename, lowered);
 
 			filelen = Sys_FileLength (netpath);
 			if (filelen == -1)
