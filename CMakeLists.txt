@@ -93,6 +93,29 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_options(Kpded2 PRIVATE "-Wl,--build-id=sha1")
 endif()
 
+# Profiling builds only: links the Tracy client into the server. KPD_TRACY_DIR must be the same Tracy
+# version as the profiler that connects.
+option(KPD_ENABLE_TRACY "Build the Tracy profiler client into kpded2" OFF)
+set(KPD_TRACY_DIR "" CACHE PATH "Tracy source checkout")
+
+if(KPD_ENABLE_TRACY)
+	if(NOT EXISTS "${KPD_TRACY_DIR}/public/TracyClient.cpp")
+		message(FATAL_ERROR "KPD_ENABLE_TRACY needs KPD_TRACY_DIR pointing at a Tracy checkout")
+	endif()
+
+	enable_language(CXX)
+	add_library(KpdTracyClient STATIC "${KPD_TRACY_DIR}/public/TracyClient.cpp")
+	target_include_directories(KpdTracyClient SYSTEM PUBLIC "${KPD_TRACY_DIR}/public")
+	# On demand, and on 8087: a Tracy-built game library in the same process keeps the default 8086.
+	target_compile_definitions(KpdTracyClient PUBLIC TRACY_ENABLE TRACY_ON_DEMAND
+		PRIVATE TRACY_DATA_PORT=8087 TRACY_BROADCAST_PORT=8087 TRACY_NO_SAMPLING TRACY_NO_SYSTEM_TRACING)
+	target_compile_options(KpdTracyClient PRIVATE -w)
+
+	target_link_libraries(Kpded2 PRIVATE KpdTracyClient)
+	target_compile_definitions(Kpded2 PRIVATE KPD_TRACY)
+	target_link_options(Kpded2 PRIVATE -static-libstdc++ -static-libgcc)
+endif()
+
 if(NOT MSVC)
 	# 1999 inline semantics: a bare `inline` must still emit an external definition, or
 	# SV_FixPlayerSkin has no out-of-line copy for PF_Configstring to call.

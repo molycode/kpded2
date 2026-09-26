@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 #include "../geoip/maxminddb.h"
+#include "../qcommon/kpd_profile.h"
 
 #define	HEARTBEAT_SECONDS	300
 
@@ -3155,7 +3156,9 @@ void SV_Frame (int msec)
 #endif
 
 	// get packets from clients
+	KPD_ZONE (read_zone, "read packets");
 	SV_ReadPackets ();
+	KPD_ZONE_END (read_zone);
 
 	// move autonomous things around if enough time has passed
 	if (!sv_timedemo->intvalue && (uint32)svs.realtime < sv.time)
@@ -3199,10 +3202,12 @@ void SV_Frame (int msec)
 #endif
 
 		// MH: sleep until next heartbeat in idle mode
+		KPD_ZONE (sleep_zone, "sleep");
 		if (g_idle->intvalue)
 			NET_Sleep (public_server->intvalue ? svs.last_heartbeat + HEARTBEAT_SECONDS*1000 - curtime : INT_MAX);
 		else
 			NET_Sleep (sv.time - svs.realtime);
+		KPD_ZONE_END (sleep_zone);
 
 #ifdef _WIN32
 		// MH: retake mutex
@@ -3237,43 +3242,67 @@ void SV_Frame (int msec)
 	//Com_Printf ("** game tick (%d drift)**\n", LOG_GENERAL, sv.time - svs.realtime);
 
 	//r1: execute commands now
+	KPD_ZONE (cmd_zone, "commands");
 	Cbuf_Execute();
+	KPD_ZONE_END (cmd_zone);
 
 	//may have executed some kind of quit
 	if (!svs.initialized)
 		return;
 
 	// update ping based on the last known frame from all clients
+	KPD_ZONE (ping_zone, "pings");
 	SV_CalcPings();
+	KPD_ZONE_END (ping_zone);
 
 	// give the clients some timeslices
+	KPD_ZONE (msec_zone, "give msec");
 	SV_GiveMsec ();
+	KPD_ZONE_END (msec_zone);
 
 	// let everything in the world think and move
+	KPD_ZONE (game_zone, "game frame");
 	SV_RunGameFrame ();
+	KPD_ZONE_END (game_zone);
 
 	// check timeouts
+	KPD_ZONE (timeout_zone, "timeouts");
 	SV_CheckTimeouts ();
+	KPD_ZONE_END (timeout_zone);
 
 	// send messages back to the clients that had packets read this frame
+	KPD_ZONE (send_zone, "send");
 	SV_SendClientMessages ();
+	KPD_ZONE_END (send_zone);
 
 	// save the entire world state if recording a serverdemo
+	KPD_ZONE (demo_zone, "demo");
 	SV_RecordDemoMessage ();
+	KPD_ZONE_END (demo_zone);
 
 	// send a heartbeat to the master if needed
+	KPD_ZONE (beat_zone, "heartbeat");
 	Master_Heartbeat ();
+	KPD_ZONE_END (beat_zone);
 
 	// clear teleport flags, etc for next frame
+	KPD_ZONE (prep_zone, "prep world");
 	SV_PrepWorldFrame ();
+	KPD_ZONE_END (prep_zone);
 
+	KPD_ZONE (restart_zone, "restart on empty");
 	SV_CheckRestartOnEmpty ();
+	KPD_ZONE_END (restart_zone);
 
 	// MH: check auto-idle mode
+	KPD_ZONE (idle_zone, "auto idle");
 	SV_CheckAutoIdle ();
+	KPD_ZONE_END (idle_zone);
 
 	// MH: minimize memory usage
+	KPD_ZONE (mem_zone, "minimize memory");
 	SV_MinimizeMemory ();
+	KPD_ZONE_END (mem_zone);
 
 	//have to check this here for possible listen servers loading DLLs and stuff
 	//during server execution
