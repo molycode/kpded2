@@ -64,14 +64,14 @@ attribute through a function pointer, so every guard built on it reads as fallin
 reading around the findings rather than from a finding itself.
 
 Run it with the pinned Clang (`$KPD_CLANG_PATH`, the root your user presets pass), against the
-compile database that `cmake --preset linux-clang_22-relwithdebinfo` writes:
+compile database that `cmake --preset linux-clang_23-relwithdebinfo` writes:
 
-    $KPD_CLANG_PATH/bin/clang-tidy -p build/clang_22-RelWithDebInfo server/<file>.c
+    $KPD_CLANG_PATH/bin/clang-tidy -p build/clang_23-RelWithDebInfo server/<file>.c
 
 Tree-wide, which is the only way the header findings deduplicate:
 
     $KPD_CLANG_PATH/bin/run-clang-tidy -clang-tidy-binary $KPD_CLANG_PATH/bin/clang-tidy \
-      -p build/clang_22-RelWithDebInfo -quiet -j 8 '/(qcommon|server|game|linux)/'
+      -p build/clang_23-RelWithDebInfo -quiet -j 8 '/(qcommon|server|game|linux)/'
 
 Neither binary is on `PATH`, and `run-clang-tidy` needs `-clang-tidy-binary` even when called by its
 full path. When counting findings, resolve each path with `realpath` first: the same header arrives
