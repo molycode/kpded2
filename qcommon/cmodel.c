@@ -69,7 +69,7 @@ static cnode_t		map_nodes[MAX_MAP_NODES+6];		// extra for box hull
 
 static int			numleafs = 1;	// allow leaf funcs to be called without a map
 cleaf_t				map_leafs[MAX_MAP_LEAFS];
-static int			emptyleaf, solidleaf;
+static int			emptyleaf;
 
 static int			numleafbrushes;
 static uint16		map_leafbrushes[MAX_MAP_LEAFBRUSHES];
@@ -312,7 +312,6 @@ void CMod_LoadLeafs (lump_t *l)
 	if (map_leafs[0].contents != CONTENTS_SOLID)
 		Com_Error (ERR_DROP, "Map leaf 0 is not CONTENTS_SOLID");
 
-	solidleaf = 0;
 	emptyleaf = -1;
 	for (i=1 ; i<numleafs ; i++)
 	{
