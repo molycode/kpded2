@@ -632,6 +632,9 @@ void EXPORT SV_Multicast (vec3_t /*@null@*/ origin, multicast_t to)
 			area2 = CM_LeafArea (leafnum);
 			if (!CM_AreasConnected (area1, area2))
 				continue;
+			// -1 means the client is in solid, as a cut scene's camera can be: in no PVS, and mask[-1] reads before the row
+			if (cluster == -1)
+				continue;
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 				continue;
 		}
