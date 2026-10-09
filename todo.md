@@ -80,3 +80,29 @@ several-fold.
 
 Disable a check only once its findings are shown to be false, with the reason written into
 `.clang-tidy`.
+
+## List game-made players in the server browsers
+
+A game library can put players into client slots itself, without the engine connecting anything
+there: a co-op companion-bot game library calls `ClientConnect` and `ClientBegin` on a free slot.
+Both places that report players only walk `svs.clients` at `cs_connected` or later -
+`SV_StatusString` (status replies and master heartbeats) and the GameSpy reply in `sv_main.c`
+(`numplayers` and `player_<n>`) - so those players never show. Measured 2026-10-09 on a local
+server: one human and seven bots in the game, one player in the status reply. A server with bots
+looks emptier than it is.
+
+Known: such a slot's edict is `inuse` with a `client`, while its `client_t` stays `cs_free`; the game
+sets `CS_PLAYERSKINS + slot` (`name\model/skin`) for it as for any player, so the name and
+`ps.stats[STAT_FRAGS]` are at hand without a new game interface.
+
+Wanted: list them by name, so a server looks as busy as it is, but never as full - at most
+`maxclients - 1` players reported (counting `sv_reserved_slots`, which already lowers the advertised
+`maxclients`), so a browser filter that hides full servers still shows it.
+
+Open: whether to mark them (ping 0, a tag) - unmarked looks busier but misleads someone looking for
+humans; whether `sv_validate_playerskins` passes a game-made player's configstring; the public
+servers' status page reads the status reply and should then agree.
+
+Settled by: a local server with game-made players whose status reply, heartbeat and GameSpy reply
+list them by name and stop one short of the advertised `maxclients`, seen in a stock client's
+server browser.
