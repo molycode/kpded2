@@ -519,6 +519,55 @@ CONNECTIONLESS COMMANDS
 
 /*
 ===============
+SV_GamePlayers
+
+The players a game library makes itself, as a companion-bot mod does: slots free to the engine
+whose edict the game uses for a player. At most up to one under the advertised maxclients, so a
+server with room for people never looks full.
+===============
+*/
+static int SV_GamePlayers (int *slots)
+{
+	edict_t	*ent;
+	int		i, used, room, n;
+
+	if (!ge || sv.state != ss_game)
+		return 0;
+
+	used = 0;
+	for (i=0 ; i<maxclients->intvalue ; i++)
+		if (svs.clients[i].state >= cs_connected)
+			used++;
+
+	room = maxclients->intvalue - sv_reserved_slots->intvalue - 1 - used;
+
+	for (n=i=0 ; i<maxclients->intvalue && n<room ; i++)
+	{
+		ent = EDICT_NUM(i + 1);
+		if (svs.clients[i].state == cs_free && ent->inuse && ent->client)
+			slots[n++] = i;
+	}
+
+	return n;
+}
+
+// a game-made player's name, from its configstring: name\model/skin
+static const char *SV_GamePlayerName (int slot)
+{
+	static char	name[MAX_QPATH];
+	const char	*s = sv.configstrings[CS_PLAYERSKINS + slot];
+	size_t		len = strcspn (s, "\\");
+
+	if (len >= sizeof(name))
+		len = sizeof(name) - 1;
+	memcpy (name, s, len);
+	name[len] = 0;
+
+	return name;
+}
+
+/*
+===============
 SV_StatusString
 
 Builds the string that is sent as heartbeats and status replies
@@ -584,8 +633,9 @@ static const char *SV_StatusString (void)
 	char	*serverinfo;
 	char	player[1024];
 	static char	status[MAX_MSGLEN - 16];
-	int		i;
+	int		i, n, slots[MAX_CLIENTS];
 	client_t	*cl;
+	edict_t	*ent;
 	int		statusLength;
 	int		playerLength;
 //	player_state_t	*ps;
@@ -616,6 +666,20 @@ static const char *SV_StatusString (void)
 				strcpy (status + statusLength, player);
 				statusLength += playerLength;
 			}
+		}
+
+		n = SV_GamePlayers (slots);
+		for (i=0 ; i<n ; i++)
+		{
+			ent = EDICT_NUM(slots[i] + 1);
+			Com_sprintf (player, sizeof(player), "%i %i \"%s\"\n",
+					ent->client->ps.stats[STAT_FRAGS], ent->client->ping, SV_GamePlayerName (slots[i]));
+
+			playerLength = (int)strlen(player);
+			if ((size_t)(statusLength + playerLength) >= sizeof(status) )
+				break;		// can't hold any more
+			strcpy (status + statusLength, player);
+			statusLength += playerLength;
 		}
 	}
 
@@ -723,7 +787,7 @@ The second parameter should be the current protocol version number.
 static void SVC_Info (void)
 {
 	char	string[80]; // MH: client supports 80
-	int		i, count;
+	int		i, count, slots[MAX_CLIENTS];
 	int		version;
 
 	if (maxclients->intvalue == 1)
@@ -747,6 +811,7 @@ static void SVC_Info (void)
 		for (i=0 ; i<maxclients->intvalue ; i++)
 			if (svs.clients[i].state >= cs_spawning)
 				count++;
+		count += SV_GamePlayers (slots);
 
 		// MH: crop hostname if required to make string fit buffer, and don't bother with padding
 		Com_sprintf (string, sizeof(string), "%.*s %s %2i/%2i\n",
@@ -2367,7 +2432,8 @@ static void SV_GamespyPacket(void)
 	// GamespyLite and most master servers can handle large packets, so not bothering to split them here
 	static int	qid;
 	char		*s, buf[8192];
-	int			i, count, len, master;
+	int			i, count, len, master, n, slots[MAX_CLIENTS], teams;
+	edict_t		*ent;
 	qboolean	status;
 
 	if (sv_hidestatus->intvalue)
@@ -2411,6 +2477,7 @@ static void SV_GamespyPacket(void)
 		for (count = i = 0; i < maxclients->intvalue; i++)
 			if (svs.clients[i].state >= cs_spawning)
 				count++;
+		count += SV_GamePlayers(slots);
 
 		len += Com_sprintf(buf + len, sizeof(buf) - len, "\\hostname\\%s\\hostport\\%d\\mapname\\%s\\gametype\\%s\\numplayers\\%d\\maxplayers\\%d\\gamemode\\openplaying",
 			HostnameString(), server_port, sv.name, Cvar_VariableString("gamename"), count, maxclients->intvalue - sv_reserved_slots->intvalue);
@@ -2430,17 +2497,29 @@ static void SV_GamespyPacket(void)
 
 	if (!sv_hideplayers->intvalue && (status || strstr(s, "\\players\\")))
 	{
+		teams = g_features->intvalue & GMF_CLIENTTEAM;
 		for (count = i = 0; i < maxclients->intvalue; i++)
 			if (svs.clients[i].state >= cs_spawning)
 			{
 				len += Com_sprintf(buf + len, sizeof(buf) - len, "\\player_%d\\%s\\frags_%d\\%d\\ping_%d\\%d\\deaths_%d\\%d",
 					count, svs.clients[i].name, count, svs.clients[i].edict->client->ps.stats[STAT_FRAGS], count, svs.clients[i].ping, count, svs.clients[i].edict->client->ps.stats[STAT_DEPOSITED]);
-				if (g_features->intvalue & GMF_CLIENTTEAM)
+				if (teams)
 					len += Com_sprintf(buf + len, sizeof(buf) - len, "\\team_%d\\%d", count, svs.clients[i].edict->client->team);
 				count++;
 				if ((size_t)len > sizeof(buf) - 140)
 					break;
 			}
+
+		n = SV_GamePlayers(slots);
+		for (i = 0; i < n && (size_t)len <= sizeof(buf) - 140; i++)
+		{
+			ent = EDICT_NUM(slots[i] + 1);
+			len += Com_sprintf(buf + len, sizeof(buf) - len, "\\player_%d\\%s\\frags_%d\\%d\\ping_%d\\%d\\deaths_%d\\%d",
+				count, SV_GamePlayerName(slots[i]), count, ent->client->ps.stats[STAT_FRAGS], count, ent->client->ping, count, ent->client->ps.stats[STAT_DEPOSITED]);
+			if (teams)
+				len += Com_sprintf(buf + len, sizeof(buf) - len, "\\team_%d\\%d", count, ent->client->team);
+			count++;
+		}
 	}
 
 	s = strstr(s, "\\secure\\");
