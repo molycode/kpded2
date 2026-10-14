@@ -265,8 +265,9 @@ typedef struct client_s
 	// MH: curse sounds disabled
 	uint32			nocurse;
 
-	// +activate is down, so its moves carry BUTTON_ACTIVATE
-	qboolean		activate_held;
+	// +activate's key button: the keys holding it, and 1 down, 2 pressed since the last move run
+	int				activate_keys[2];
+	int				activate_state;
 #endif
 
 	//r1: number of times they've commandMsec underflowed (if this gets excessive then

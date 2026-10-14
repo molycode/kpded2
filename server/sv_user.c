@@ -3057,6 +3057,66 @@ const char *SV_GetClientName (void)
 	return sv_client->name;
 }
 
+#if KINGPIN
+/*
+==================
+SV_ActivateDown
+==================
+*/
+static void SV_ActivateDown (client_t *cl)
+{
+	int		k;
+
+	if (Cmd_Argv(1)[0])
+		k = atoi (Cmd_Argv(1));
+	else
+		k = -1;		// typed at the console, held until -activate
+
+	if (k == cl->activate_keys[0] || k == cl->activate_keys[1])
+		return;		// repeating key
+
+	if (!cl->activate_keys[0])
+		cl->activate_keys[0] = k;
+	else if (!cl->activate_keys[1])
+		cl->activate_keys[1] = k;
+	else
+		return;		// a third key
+
+	cl->activate_state |= 1 + 2;
+}
+
+/*
+==================
+SV_ActivateUp
+==================
+*/
+static void SV_ActivateUp (client_t *cl)
+{
+	int		k;
+
+	if (!Cmd_Argv(1)[0])
+	{
+		// typed at the console: release it whatever holds it
+		cl->activate_keys[0] = cl->activate_keys[1] = 0;
+		cl->activate_state &= ~1;
+		return;
+	}
+
+	k = atoi (Cmd_Argv(1));
+	if (cl->activate_keys[0] == k)
+		cl->activate_keys[0] = 0;
+	else if (cl->activate_keys[1] == k)
+		cl->activate_keys[1] = 0;
+	else
+		return;		// key up without a key down
+
+	if (cl->activate_keys[0] || cl->activate_keys[1])
+		return;		// another key still holds it
+
+	cl->activate_state &= ~1;
+}
+#endif // KINGPIN
+
 /*
 ==================
 SV_ExecuteUserCommand
@@ -3174,9 +3234,9 @@ static void SV_ExecuteUserCommand (char *s)
 #if KINGPIN
 	// Tracked ahead of the spawn gate so a release during a level change is not lost.
 	if (!strcmp(Cmd_Argv(0), "+activate"))
-		sv_client->activate_held = true;
+		SV_ActivateDown (sv_client);
 	else if (!strcmp(Cmd_Argv(0), "-activate"))
-		sv_client->activate_held = false;
+		SV_ActivateUp (sv_client);
 #endif // KINGPIN
 
 	//r1: do we really want to be passing commands from unconnected players
@@ -3329,7 +3389,7 @@ static void SV_ClientThink (client_t *cl, usercmd_t *cmd)
 
 	// The 1999 client only sets this bit when its own process hosts the server, which pressed its
 	// key for it. A copy, because cmd is the base the next move's buttons are delta-decoded from.
-	if (cl->activate_held)
+	if (cl->activate_state & 3)
 	{
 		activatecmd = *cmd;
 		activatecmd.buttons |= BUTTON_ACTIVATE;
@@ -3343,6 +3403,10 @@ static void SV_ClientThink (client_t *cl, usercmd_t *cmd)
 
 	if (cl->commandMsec < 0 && sv_enforcetime->intvalue)
 		return;
+
+#if KINGPIN
+	cl->activate_state &= ~2;
+#endif
 
 	interpolate = false;
 
