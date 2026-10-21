@@ -200,8 +200,8 @@ typedef enum {false, true}	qboolean;
 #define NULL ((void *)0)
 #endif
 
-// MH: these seem fine with GCC/Linux too
-#if 1//def _WIN32
+// Windows only: on x87 the bit test rounds one side to float, and pmove stops matching the clients
+#ifdef _WIN32
 #define FLOAT2INTCAST(f)(*((int32 *)(&(f))))
 #define FLOAT2UINTCAST(f)(*((uint32 *)(&(f))))
 #define FLOAT_LT_ZERO(f) (FLOAT2UINTCAST(f) > 0x80000000U)
