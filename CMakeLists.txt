@@ -125,6 +125,11 @@ if(NOT MSVC)
 	# client's for prediction; -fno-finite-math-only avoids pulling in a GLIBC_2.15 symbol.
 	target_compile_options(Kpded2 PRIVATE -ffast-math -fno-associative-math -fno-finite-math-only)
 
+	# x87 as on i386: under Sys_SetFPU's 24-bit precision, pmove and traces then match the i386 server exactly.
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		set_source_files_properties(qcommon/pmove.c qcommon/cmodel.c game/q_shared.c PROPERTIES COMPILE_OPTIONS -mfpmath=387)
+	endif()
+
 	# Quake 2 type-puns floats through int pointers throughout. The reads are real, so the honest fix is
 	# to stop promising the optimiser they cannot alias rather than to silence the 149 warnings it emits.
 	target_compile_options(Kpded2 PRIVATE -fno-strict-aliasing)
