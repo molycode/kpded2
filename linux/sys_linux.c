@@ -556,6 +556,11 @@ void *Sys_GetGameAPI (void *parms, int baseq2)
 					Com_Printf ("dlopen(): %s\n", LOG_SERVER, dlerror());
 				}
 			}
+#ifdef __x86_64__
+			Com_sprintf (name, sizeof(name), "%s/%s/gamei386.so", curpath, path);
+			if (Sys_FileLength(name) != -1)
+				Com_Printf ("WARNING: %s is a 32-bit game library, which this server cannot load\n", LOG_SERVER|LOG_WARNING, name);
+#endif
 		}
 	}
 
