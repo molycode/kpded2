@@ -661,7 +661,7 @@ int main (int argc, char **argv)
 		else
 			goodspins++;
 
-#if KINGPIN
+#if KINGPIN && defined __i386__
 		// MH: enforce 24-bit precision to match client
 		Sys_SetFPU ();
 #endif

@@ -121,13 +121,13 @@ if(NOT MSVC)
 	# SV_FixPlayerSkin has no out-of-line copy for PF_Configstring to call.
 	target_compile_options(Kpded2 PRIVATE -fgnu89-inline)
 
-	# Upstream's Makefile flags. -fno-associative-math keeps float results close enough to the
-	# client's for prediction; -fno-finite-math-only avoids pulling in a GLIBC_2.15 symbol.
-	target_compile_options(Kpded2 PRIVATE -ffast-math -fno-associative-math -fno-finite-math-only)
-
-	# x87 as on i386: under Sys_SetFPU's 24-bit precision, pmove and traces then match the i386 server exactly.
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
-		set_source_files_properties(qcommon/pmove.c qcommon/cmodel.c game/q_shared.c PROPERTIES COMPILE_OPTIONS -mfpmath=387)
+	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		# Upstream's Makefile flags. -fno-associative-math keeps float results close enough to the
+		# client's for prediction; -fno-finite-math-only avoids pulling in a GLIBC_2.15 symbol.
+		target_compile_options(Kpded2 PRIVATE -ffast-math -fno-associative-math -fno-finite-math-only)
+	else()
+		# SSE floats rounded per operation, as C specifies and kp-client computes, so its prediction matches.
+		target_compile_options(Kpded2 PRIVATE -ffp-contract=off -fno-math-errno)
 	endif()
 
 	# Quake 2 type-puns floats through int pointers throughout. The reads are real, so the honest fix is
