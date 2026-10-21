@@ -1657,7 +1657,7 @@ void Pmove (pmove_new_t *pmove)
 	pml.previous_origin[1] = pm->s.origin[1];
 	pml.previous_origin[2] = pm->s.origin[2];
 
-	pml.frametime = pm->cmd.msec * 0.001f;
+	pml.frametime = (float)(pm->cmd.msec * 0.001);
 
 	PM_ClampAngles ();
 
