@@ -815,7 +815,7 @@ static void SVC_Info (void)
 
 		// MH: crop hostname if required to make string fit buffer, and don't bother with padding
 		Com_sprintf (string, sizeof(string), "%.*s %s %2i/%2i\n",
-			sizeof(string) - strlen(sv.name) - 9, HostnameString(), sv.name, count, maxclients->intvalue - sv_reserved_slots->intvalue);
+			(int)(sizeof(string) - strlen(sv.name) - 9), HostnameString(), sv.name, count, maxclients->intvalue - sv_reserved_slots->intvalue);
 	}
 
 	Netchan_OutOfBandPrint (NS_SERVER, &net_from, "info\n%s", string);

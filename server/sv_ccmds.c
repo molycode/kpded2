@@ -2988,7 +2988,7 @@ void SV_ClientStop_f (void)
 
 	if (!sv_client->demofile)
 	{
-		Com_Printf ("Not recording client %d (%s)\n", LOG_GENERAL, sv_client - svs.clients, sv_client->name);
+		Com_Printf ("Not recording client %d (%s)\n", LOG_GENERAL, (int)(sv_client - svs.clients), sv_client->name);
 		return;
 	}
 
@@ -2997,7 +2997,7 @@ void SV_ClientStop_f (void)
 	fwrite (&len, 4, 1, sv_client->demofile);
 	fclose (sv_client->demofile);
 	sv_client->demofile = NULL;
-	Com_Printf ("Stopped recording client %d (%s)\n", LOG_GENERAL, sv_client - svs.clients, sv_client->name);
+	Com_Printf ("Stopped recording client %d (%s)\n", LOG_GENERAL, (int)(sv_client - svs.clients), sv_client->name);
 }
 
 // MH: begin recording a client demo
@@ -3019,7 +3019,7 @@ void SV_ClientRecord_f (void)
 
 	if (sv_client->demofile)
 	{
-		Com_Printf ("Already recording client %d (%s) to %s\n", LOG_GENERAL, sv_client - svs.clients, sv_client->name, sv_client->demoname);
+		Com_Printf ("Already recording client %d (%s) to %s\n", LOG_GENERAL, (int)(sv_client - svs.clients), sv_client->name, sv_client->demoname);
 		return;
 	}
 
@@ -3063,7 +3063,7 @@ void SV_ClientRecord_f (void)
 		fullname = va("%s/%s", FS_Gamedir(), name);
 	}
 
-	Com_Printf ("Recording client %d (%s) to %s\n", LOG_GENERAL, sv_client - svs.clients, sv_client->name, name);
+	Com_Printf ("Recording client %d (%s) to %s\n", LOG_GENERAL, (int)(sv_client - svs.clients), sv_client->name, name);
 	FS_CreatePath (fullname);
 	sv_client->demofile = fopen (fullname, "wb");
 	if (!sv_client->demofile)
