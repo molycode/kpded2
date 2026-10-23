@@ -361,6 +361,12 @@ typedef struct client_s
 	char			demoname[MAX_QPATH];
 	FILE			*demofile;
 	unsigned int	demostart;
+
+	// net_rates: the last second's traffic, and the channel totals it was measured from
+	double			netrate_kib_in, netrate_kib_out;
+	int				netrate_pps_in, netrate_pps_out;
+	uint64			netrate_bytes_in, netrate_packets_in;
+	uint64			netrate_bytes_out, netrate_packets_out;
 } client_t;
 
 // a client can leave the server in one of four ways:
@@ -612,6 +618,7 @@ void SV_WriteClientdataToMessage (client_t *client, sizebuf_t *msg);
 
 //void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands (void);
+void SV_UpdateNetRates (void);
 
 void SV_SendServerinfo (client_t *client);
 void SV_UserinfoChanged (client_t *cl);

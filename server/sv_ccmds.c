@@ -2425,6 +2425,94 @@ loop:
 #endif
 }
 
+static double	netrate_all_kib_in, netrate_all_kib_out;
+static int		netrate_all_pps_in, netrate_all_pps_out;
+
+/*
+==================
+SV_UpdateNetRates
+==================
+*/
+void SV_UpdateNetRates (void)
+{
+	static unsigned int	lasttime;
+	static uint64		allbytesin, allpacketsin, allbytesout, allpacketsout;
+	uint64			bytesin, packetsin, bytesout, packetsout;
+	unsigned int	msec;
+	client_t		*cl;
+	int				i;
+
+	msec = curtime - lasttime;
+	if (msec < 1000)
+		return;
+	lasttime = curtime;
+
+	for (i = 0, cl = svs.clients; i < maxclients->intvalue; i++, cl++)
+	{
+		if (cl->state < cs_connected)
+			continue;
+
+		cl->netrate_kib_in = (cl->netchan.bytes_in - cl->netrate_bytes_in) * 1000.0 / (msec * 1024.0);
+		cl->netrate_kib_out = (cl->netchan.bytes_out - cl->netrate_bytes_out) * 1000.0 / (msec * 1024.0);
+		cl->netrate_pps_in = (int)((cl->netchan.packets_in - cl->netrate_packets_in) * 1000 / msec);
+		cl->netrate_pps_out = (int)((cl->netchan.packets_out - cl->netrate_packets_out) * 1000 / msec);
+		cl->netrate_bytes_in = cl->netchan.bytes_in;
+		cl->netrate_packets_in = cl->netchan.packets_in;
+		cl->netrate_bytes_out = cl->netchan.bytes_out;
+		cl->netrate_packets_out = cl->netchan.packets_out;
+	}
+
+	NET_GetTotals (&bytesin, &packetsin, &bytesout, &packetsout);
+	netrate_all_kib_in = (bytesin - allbytesin) * 1000.0 / (msec * 1024.0);
+	netrate_all_kib_out = (bytesout - allbytesout) * 1000.0 / (msec * 1024.0);
+	netrate_all_pps_in = (int)((packetsin - allpacketsin) * 1000 / msec);
+	netrate_all_pps_out = (int)((packetsout - allpacketsout) * 1000 / msec);
+	allbytesin = bytesin;
+	allpacketsin = packetsin;
+	allbytesout = bytesout;
+	allpacketsout = packetsout;
+}
+
+/*
+==================
+SV_NetRates_f
+==================
+*/
+static void SV_NetRates_f (void)
+{
+	int			i;
+	client_t	*cl;
+	double		kibin, kibout;
+	int			ppsin, ppsout;
+
+	if (!svs.clients)
+	{
+		Com_Printf ("No server running.\n", LOG_GENERAL);
+		return;
+	}
+
+	kibin = kibout = 0;
+	ppsin = ppsout = 0;
+
+	Com_Printf (" # name            recv KiB/s pkt/s sent KiB/s pkt/s\n", LOG_GENERAL);
+	Com_Printf ("-- --------------- ---------- ----- ---------- -----\n", LOG_GENERAL);
+	for (i = 0, cl = svs.clients; i < maxclients->intvalue; i++, cl++)
+	{
+		if (cl->state < cs_connected)
+			continue;
+
+		Com_Printf ("%2i %-15s %10.1f %5i %10.1f %5i\n", LOG_GENERAL, i, cl->name,
+			cl->netrate_kib_in, cl->netrate_pps_in, cl->netrate_kib_out, cl->netrate_pps_out);
+		kibin += cl->netrate_kib_in;
+		ppsin += cl->netrate_pps_in;
+		kibout += cl->netrate_kib_out;
+		ppsout += cl->netrate_pps_out;
+	}
+	Com_Printf ("   %-15s %10.1f %5i %10.1f %5i\n", LOG_GENERAL, "clients", kibin, ppsin, kibout, ppsout);
+	Com_Printf ("   %-15s %10.1f %5i %10.1f %5i\n", LOG_GENERAL, "all traffic",
+		netrate_all_kib_in, netrate_all_pps_in, netrate_all_kib_out, netrate_all_pps_out);
+}
+
 /*
 ==================
 SV_ConSay_f
@@ -3173,6 +3261,7 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("kickban", SV_Kickban_f);
 #endif
 	Cmd_AddCommand ("status", SV_Status_f);
+	Cmd_AddCommand ("net_rates", SV_NetRates_f);
 	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f);
 	Cmd_AddCommand ("dumpuser", SV_DumpUser_f);
 

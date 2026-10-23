@@ -335,6 +335,8 @@ int Netchan_Transmit (netchan_t *chan, int length, const byte *data)
 	{
 		if (NET_SendPacket (chan->sock, send.cursize, send_buf, &chan->remote_address) == -1)
 			return -1;
+		chan->bytes_out += send.cursize;
+		chan->packets_out++;
 		// MH: don't send duplicates if there is no recent packet loss
 		if (!chan->out_dropped)
 			break;
@@ -373,6 +375,9 @@ qboolean Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 	uint32		sequence, sequence_ack;
 	int32		reliable_ack;
 	uint32		reliable_message;
+
+	chan->bytes_in += msg->cursize;
+	chan->packets_in++;
 
 	// get sequence numbers		
 	MSG_BeginReading (msg);

@@ -3239,6 +3239,8 @@ void SV_Frame (int msec)
 	SV_ReadPackets ();
 	KPD_ZONE_END (read_zone);
 
+	SV_UpdateNetRates ();
+
 	// move autonomous things around if enough time has passed
 	if (!sv_timedemo->intvalue && (uint32)svs.realtime < sv.time)
 	{

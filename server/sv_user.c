@@ -2934,6 +2934,12 @@ static void SV_Lag_f (void)
 		sdelay2, sdelay, sdelaytime);
 }
 
+static void SV_ClientNetRates_f (void)
+{
+	SV_ClientPrintf (sv_client, PRINT_HIGH, "Your last second, as the server measured it: in %.1f KiB/s %d pkt/s  out %.1f KiB/s %d pkt/s\n",
+		sv_client->netrate_kib_out, sv_client->netrate_pps_out, sv_client->netrate_kib_in, sv_client->netrate_pps_in);
+}
+
 static void SV_PacketDup_f (void)
 {
 	unsigned int	i;
@@ -3008,6 +3014,7 @@ static ucmd_t ucmds[] =
 
 	{"nogamedata", SV_NoGameData_f},
 	{"lag", SV_Lag_f},
+	{"net_rates", SV_ClientNetRates_f},
 	{"packetdup", SV_PacketDup_f},
 	
 	{"download", SV_BeginDownload_f},

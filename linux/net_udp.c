@@ -149,6 +149,14 @@ void Net_Stats_f (void)
 				net_total_out, net_packets_out, (int)((net_total_out * 8) / 1024) / diff);
 }
 
+void NET_GetTotals (uint64 *bytes_in, uint64 *packets_in, uint64 *bytes_out, uint64 *packets_out)
+{
+	*bytes_in = net_total_in;
+	*packets_in = net_packets_in;
+	*bytes_out = net_total_out;
+	*packets_out = net_packets_out;
+}
+
 /*
 =============================================================================
 

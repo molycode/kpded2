@@ -848,6 +848,7 @@ int			NET_Config (int openFlags);
 
 int			NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message);
 int			NET_SendPacket (netsrc_t sock, int length, const void *data, netadr_t *to);
+void		NET_GetTotals (uint64 *bytes_in, uint64 *packets_in, uint64 *bytes_out, uint64 *packets_out);
 
 #define NET_IsLocalAddress(x) \
 	((x)->ip[0] == 127)
@@ -926,6 +927,10 @@ typedef struct
 	unsigned int	in_dropped;
 
 	unsigned int	packetdup;
+
+	// traffic since Netchan_Setup
+	uint64		bytes_in, packets_in;
+	uint64		bytes_out, packets_out;
 } netchan_t;
 
 extern	netadr_t	net_from;
