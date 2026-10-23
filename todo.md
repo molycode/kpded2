@@ -80,3 +80,21 @@ several-fold.
 
 Disable a check only once its findings are shown to be false, with the reason written into
 `.clang-tidy`.
+
+## Show who sends how much: a log, warnings and server browsers
+
+Agreed, not started. `net_rates` (one second, on request) is the first piece. The rest:
+
+1. **Record.** `sv_netlog <seconds>`, off by default, writes one row per connected client every 10 s
+   to a file in the game dir: time, slot, name, IP, `ver` (patched, ours, or stock), and the average
+   and peak KiB/s and pkt/s in both directions, plus one row for all traffic on the sockets.
+2. **Flag.** Thresholds such as `sv_netwarn_pps` log a warning naming the client and its IP, at most
+   once a minute per client. No automatic kick: that is a separate decision.
+3. **Server browsers.** A new connectionless query, e.g. `netrates`, answered only by this server: the
+   last 10 s average and peak per player and in total. It shares `sv_ratelimit_status` and stays
+   compact, as a bigger reply to a small request invites reflection floods. Readers: our server
+   browser and the status page; other browsers and servers never see it.
+4. **View.** A script in `kingpin-linux-native/tools` turns a log into a page per session.
+
+Still open: whether the query gives per-player rates or only totals (per player then only through the
+log and rcon); counting non-player traffic per source IP; a matching client-side log.
